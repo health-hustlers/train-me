@@ -288,23 +288,7 @@ const fmt = (d) => new Date(d).toLocaleDateString('ar-EG', {
 });
 
 // ─── CONFIG NOTICE (لما تكون البيانات فاضية) ─────────────────────────────────
-function ConfigNotice() {
-  return (
-    <div className="config-notice">
-      <div className="config-box">
-        <h2>⚠️ إعداد مطلوب</h2>
-        <p>
-          قبل رفع المشروع على GitHub Pages، افتح ملف <strong>index.html</strong> وعدّل السطرين دول بالبيانات الحقيقية من Supabase Dashboard ← Settings ← API:
-        </p>
-        <code>const SUPABASE_URL = 'https://mcqugbvpiyrmqsndtiwu.supabase.co/rest/v1/';</code>
-        <code>const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1jcXVnYnZwaXlybXFzbmR0aXd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODExMDA5NDAsImV4cCI6MjA5NjY3Njk0MH0.aspyIGCB_nzvAV2Si_fRrswKP31w10hLDDjlA6K2dxE';</code>
-        <p style={{marginTop:12,fontSize:'.82rem',color:'var(--ink-faint)'}}>
-          بعد التعديل احفظ الملف وارفعه تاني على GitHub.
-        </p>
-      </div>
-    </div>
-  );
-}
+
 
 // ─── APP ──────────────────────────────────────────────────────────────────────
 function App() {
