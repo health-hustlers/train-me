@@ -272,8 +272,7 @@ const CONFIG_MISSING = !SUPABASE_URL || !SUPABASE_ANON_KEY;
 let supabase = null;
 if (!CONFIG_MISSING) {
   try {
-    const { createClient } = window.supabase;
-    supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   } catch(e) {
     console.error('Supabase init error:', e);
   }
