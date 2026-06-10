@@ -10,7 +10,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 
 <!-- 2) Supabase UMD الكاملة (بديل عن jsdelivr اللي بيسبب مشاكل) -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.0/dist/umd/supabase.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 
 <!-- 3) Babel أخيراً -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
@@ -272,8 +272,8 @@ const CONFIG_MISSING = !SUPABASE_URL || !SUPABASE_ANON_KEY;
 let supabase = null;
 if (!CONFIG_MISSING) {
   try {
-    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-  } catch(e) {
+const { createClient } = window.supabase;
+supabase = createClient(https://mcqugbvpiyrmqsndtiwu.supabase.co, eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1jcXVnYnZwaXlybXFzbmR0aXd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODExMDA5NDAsImV4cCI6MjA5NjY3Njk0MH0.aspyIGCB_nzvAV2Si_fRrswKP31w10hLDDjlA6K2dxE);  } catch(e) {
     console.error('Supabase init error:', e);
   }
 }
