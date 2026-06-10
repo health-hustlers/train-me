@@ -4,14 +4,22 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>منصة التدريب</title>
+
+<!-- 1) React أولاً -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+
+<!-- 2) Supabase UMD الكاملة (بديل عن jsdelivr اللي بيسبب مشاكل) -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.0/dist/umd/supabase.js"></script>
+
+<!-- 3) Babel أخيراً -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
 
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap');
-
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
   :root {
@@ -215,7 +223,26 @@
   .spinner { display:inline-block;width:18px;height:18px;border:2.5px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite; }
   @keyframes spin { to { transform:rotate(360deg); } }
 
-  .applied-badge { display:inline-flex;align-items:center;gap:5px;background:#f0fdf4;color:var(--success);border:1px solid #bbf7d0;border-radius:8px;padding:6px 12px;font-size:.82rem;font-weight:700; }
+  .applied-badge { display:inline-flex;align-items:center;gap:5px;background:#f0fdf4;color:var(--success);border:1px solid #bbf7d0;border-radius:8px;padding:6px 12px;font-size:.82rem;font-weight:700;cursor:pointer; }
+
+  /* ── CONFIG NOTICE ── */
+  .config-notice {
+    position:fixed;inset:0;background:rgba(15,23,42,.85);display:flex;
+    align-items:center;justify-content:center;z-index:9999;padding:20px;
+    backdrop-filter:blur(4px);
+  }
+  .config-box {
+    background:var(--card);border-radius:var(--radius);padding:36px;
+    max-width:460px;width:100%;box-shadow:var(--shadow-lg);text-align:center;
+  }
+  .config-box h2 { font-size:1.4rem;font-weight:800;margin-bottom:12px;color:var(--danger); }
+  .config-box p { color:var(--ink-soft);font-size:.9rem;line-height:1.8;margin-bottom:16px; }
+  .config-box code {
+    display:block;background:#f1f5f9;border-radius:8px;padding:12px 16px;
+    font-family:monospace;font-size:.82rem;text-align:right;direction:ltr;
+    color:var(--ink);border:1px solid var(--border);margin-bottom:8px;
+    word-break:break-all;
+  }
 
   @media(max-width:600px) {
     .auth-card { padding:28px 20px; }
@@ -231,38 +258,84 @@
 <script type="text/babel">
 const { useState, useEffect, useCallback } = React;
 
-// ─── SUPABASE CONFIG ───────────────────────────────────────────────────────────
-// ضع هنا بيانات مشروعك من Supabase Dashboard → Settings → API
-const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+// ─── SUPABASE CONFIG ──────────────────────────────────────────────────────────
+// ⚠️ ضع هنا بيانات مشروعك من:
+//    Supabase Dashboard → Settings → API
+// ─────────────────────────────────────────────────────────────────────────────
+const SUPABASE_URL     = 'YOUR_SUPABASE_URL';
 const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
 
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// التحقق من الـ Config قبل أي حاجة
+const CONFIG_MISSING =
+  !SUPABASE_URL ||
+  !SUPABASE_ANON_KEY ||
+  SUPABASE_URL === 'YOUR_SUPABASE_URL' ||
+  SUPABASE_ANON_KEY === 'YOUR_SUPABASE_ANON_KEY';
 
-// ─── HELPERS ─────────────────────────────────────────────────────────────────
-const fmt = (d) => new Date(d).toLocaleDateString('ar-EG', { year:'numeric', month:'long', day:'numeric' });
+// إنشاء الـ Client بأمان
+let supabase = null;
+if (!CONFIG_MISSING) {
+  try {
+    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  } catch(e) {
+    console.error('Supabase init error:', e);
+  }
+}
+
+// ─── HELPERS ──────────────────────────────────────────────────────────────────
+const fmt = (d) => new Date(d).toLocaleDateString('ar-EG', {
+  year: 'numeric', month: 'long', day: 'numeric'
+});
+
+// ─── CONFIG NOTICE (لما تكون البيانات فاضية) ─────────────────────────────────
+function ConfigNotice() {
+  return (
+    <div className="config-notice">
+      <div className="config-box">
+        <h2>⚠️ إعداد مطلوب</h2>
+        <p>
+          قبل رفع المشروع على GitHub Pages، افتح ملف <strong>index.html</strong> وعدّل السطرين دول بالبيانات الحقيقية من Supabase Dashboard ← Settings ← API:
+        </p>
+        <code>const SUPABASE_URL = 'https://mcqugbvpiyrmqsndtiwu.supabase.co/rest/v1/';</code>
+        <code>const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1jcXVnYnZwaXlybXFzbmR0aXd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODExMDA5NDAsImV4cCI6MjA5NjY3Njk0MH0.aspyIGCB_nzvAV2Si_fRrswKP31w10hLDDjlA6K2dxE';</code>
+        <p style={{marginTop:12,fontSize:'.82rem',color:'var(--ink-faint)'}}>
+          بعد التعديل احفظ الملف وارفعه تاني على GitHub.
+        </p>
+      </div>
+    </div>
+  );
+}
 
 // ─── APP ──────────────────────────────────────────────────────────────────────
 function App() {
-  const [page, setPage]       = useState('landing');   // landing | auth | dashboard
-  const [role, setRole]       = useState(null);        // trainer | trainee
-  const [authMode, setAuthMode] = useState('login');   // login | register
-  const [user, setUser]       = useState(null);
-  const [profile, setProfile] = useState(null);
+  const [page, setPage]         = useState('landing');
+  const [role, setRole]         = useState(null);
+  const [authMode, setAuthMode] = useState('login');
+  const [user, setUser]         = useState(null);
+  const [profile, setProfile]   = useState(null);
 
   useEffect(() => {
+    if (CONFIG_MISSING || !supabase) return;
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) loadUser(session.user);
     });
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session) loadUser(session.user);
       else { setUser(null); setProfile(null); setPage('landing'); }
     });
+
     return () => subscription.unsubscribe();
   }, []);
 
   async function loadUser(u) {
     setUser(u);
-    const { data } = await supabase.from('profiles').select('*').eq('id', u.id).single();
+    const { data } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', u.id)
+      .single();
     if (data) { setProfile(data); setPage('dashboard'); }
   }
 
@@ -273,24 +346,32 @@ function App() {
 
   return (
     <div>
+      {CONFIG_MISSING && <ConfigNotice />}
+
       <nav className="nav">
         <div className="nav-logo"><span>🎓</span> منصة التدريب</div>
         <div className="nav-actions">
           {user && profile && <span className="nav-user">👋 {profile.name}</span>}
           {user
             ? <button className="btn btn-ghost btn-sm" onClick={handleLogout}>تسجيل خروج</button>
-            : page !== 'landing' && <button className="btn btn-ghost btn-sm" onClick={() => setPage('landing')}>← الرئيسية</button>
+            : page !== 'landing' && (
+                <button className="btn btn-ghost btn-sm" onClick={() => setPage('landing')}>← الرئيسية</button>
+              )
           }
         </div>
       </nav>
 
       {page === 'landing' && (
-        <Landing onSelect={(r) => { setRole(r); setAuthMode('register'); setPage('auth'); }}
-                 onLogin={(r) => { setRole(r); setAuthMode('login'); setPage('auth'); }} />
+        <Landing
+          onSelect={(r) => { setRole(r); setAuthMode('register'); setPage('auth'); }}
+          onLogin={(r)  => { setRole(r); setAuthMode('login');    setPage('auth'); }}
+        />
       )}
       {page === 'auth' && (
-        <AuthPage role={role} mode={authMode} setMode={setAuthMode}
-                  onBack={() => setPage('landing')} onSuccess={loadUser} />
+        <AuthPage
+          role={role} mode={authMode} setMode={setAuthMode}
+          onBack={() => setPage('landing')} onSuccess={loadUser}
+        />
       )}
       {page === 'dashboard' && profile && (
         profile.role === 'trainer'
@@ -314,18 +395,41 @@ function Landing({ onSelect, onLogin }) {
           <h3>مدرب / شركة</h3>
           <p>أضف فرص تدريبية وتواصل مع المتدربين المناسبين</p>
           <br/>
-          <button className="btn btn-primary btn-sm" style={{width:'100%',justifyContent:'center'}}>سجّل كمدرب</button>
+          <button
+            className="btn btn-primary btn-sm"
+            style={{width:'100%',justifyContent:'center'}}
+          >
+            سجّل كمدرب
+          </button>
           <br/><br/>
-          <button className="btn btn-ghost btn-sm" style={{width:'100%',justifyContent:'center'}} onClick={(e)=>{e.stopPropagation();onLogin('trainer')}}>دخول</button>
+          <button
+            className="btn btn-ghost btn-sm"
+            style={{width:'100%',justifyContent:'center'}}
+            onClick={(e) => { e.stopPropagation(); onLogin('trainer'); }}
+          >
+            دخول
+          </button>
         </div>
+
         <div className="role-card trainee" onClick={() => onSelect('trainee')}>
           <div className="role-icon">👨‍💻</div>
           <h3>متدرب</h3>
           <p>استعرض فرص التدريب وقدّم على ما يناسب مهاراتك</p>
           <br/>
-          <button className="btn btn-blue btn-sm" style={{width:'100%',justifyContent:'center'}}>سجّل كمتدرب</button>
+          <button
+            className="btn btn-blue btn-sm"
+            style={{width:'100%',justifyContent:'center'}}
+          >
+            سجّل كمتدرب
+          </button>
           <br/><br/>
-          <button className="btn btn-ghost btn-sm" style={{width:'100%',justifyContent:'center'}} onClick={(e)=>{e.stopPropagation();onLogin('trainee')}}>دخول</button>
+          <button
+            className="btn btn-ghost btn-sm"
+            style={{width:'100%',justifyContent:'center'}}
+            onClick={(e) => { e.stopPropagation(); onLogin('trainee'); }}
+          >
+            دخول
+          </button>
         </div>
       </div>
     </div>
@@ -334,7 +438,7 @@ function Landing({ onSelect, onLogin }) {
 
 // ─── AUTH PAGE ────────────────────────────────────────────────────────────────
 function AuthPage({ role, mode, setMode, onBack, onSuccess }) {
-  const [form, setForm]   = useState({ name:'', phone:'', email:'', password:'', company_name:'' });
+  const [form, setForm]     = useState({ name:'', phone:'', email:'', password:'', company_name:'' });
   const [loading, setLoading] = useState(false);
   const [error, setError]   = useState('');
   const isTrainer = role === 'trainer';
@@ -343,18 +447,29 @@ function AuthPage({ role, mode, setMode, onBack, onSuccess }) {
 
   async function handleSubmit(e) {
     e.preventDefault();
+    if (!supabase) { setError('يرجى إعداد بيانات Supabase أولاً'); return; }
     setError(''); setLoading(true);
 
     if (mode === 'register') {
       const { data, error: err } = await supabase.auth.signUp({
         email: form.email,
         password: form.password,
-        options: { data: { name: form.name, phone: form.phone, role, company_name: form.company_name || null } }
+        options: {
+          data: {
+            name: form.name,
+            phone: form.phone,
+            role,
+            company_name: form.company_name || null
+          }
+        }
       });
       if (err) { setError(err.message); setLoading(false); return; }
       if (data.user) onSuccess(data.user);
     } else {
-      const { data, error: err } = await supabase.auth.signInWithPassword({ email: form.email, password: form.password });
+      const { data, error: err } = await supabase.auth.signInWithPassword({
+        email: form.email,
+        password: form.password
+      });
       if (err) { setError('الإيميل أو الباسورد غلط'); setLoading(false); return; }
       if (data.user) onSuccess(data.user);
     }
@@ -367,7 +482,9 @@ function AuthPage({ role, mode, setMode, onBack, onSuccess }) {
     <div className="auth-wrap">
       <div className="auth-card">
         <div className="auth-header">
-          <span className={`auth-role-badge ${role}`}>{isTrainer ? '🏢 مدرب / شركة' : '👨‍💻 متدرب'}</span>
+          <span className={`auth-role-badge ${role}`}>
+            {isTrainer ? '🏢 مدرب / شركة' : '👨‍💻 متدرب'}
+          </span>
           <h2>{mode === 'register' ? 'إنشاء حساب' : 'تسجيل الدخول'}</h2>
           <p>{mode === 'register' ? 'أدخل بياناتك لإنشاء حسابك' : 'أهلاً بعودتك!'}</p>
         </div>
@@ -375,40 +492,79 @@ function AuthPage({ role, mode, setMode, onBack, onSuccess }) {
         {error && <div className="error-msg">⚠️ {error}</div>}
 
         <form onSubmit={handleSubmit}>
-          {mode === 'register' && <>
-            <div className="form-group">
-              <label className="form-label">{isTrainer ? 'اسم الشركة / المدرب' : 'الاسم بالكامل'}</label>
-              <input className={inputClass} placeholder="اكتب اسمك هنا" value={form.name}
-                onChange={e => set('name', e.target.value)} required />
-            </div>
-            {isTrainer && (
+          {mode === 'register' && (
+            <>
               <div className="form-group">
-                <label className="form-label">اسم الشركة</label>
-                <input className={inputClass} placeholder="شركة ..." value={form.company_name}
-                  onChange={e => set('company_name', e.target.value)} />
+                <label className="form-label">
+                  {isTrainer ? 'اسم الشركة / المدرب' : 'الاسم بالكامل'}
+                </label>
+                <input
+                  className={inputClass}
+                  placeholder="اكتب اسمك هنا"
+                  value={form.name}
+                  onChange={e => set('name', e.target.value)}
+                  required
+                />
               </div>
-            )}
-            <div className="form-group">
-              <label className="form-label">رقم التليفون</label>
-              <input className={inputClass} type="tel" placeholder="01xxxxxxxxx" value={form.phone}
-                onChange={e => set('phone', e.target.value)} required />
-            </div>
-          </>}
+              {isTrainer && (
+                <div className="form-group">
+                  <label className="form-label">اسم الشركة</label>
+                  <input
+                    className={inputClass}
+                    placeholder="شركة ..."
+                    value={form.company_name}
+                    onChange={e => set('company_name', e.target.value)}
+                  />
+                </div>
+              )}
+              <div className="form-group">
+                <label className="form-label">رقم التليفون</label>
+                <input
+                  className={inputClass}
+                  type="tel"
+                  placeholder="01xxxxxxxxx"
+                  value={form.phone}
+                  onChange={e => set('phone', e.target.value)}
+                  required
+                />
+              </div>
+            </>
+          )}
 
           <div className="form-group">
             <label className="form-label">الإيميل</label>
-            <input className={inputClass} type="email" placeholder="example@email.com" value={form.email}
-              onChange={e => set('email', e.target.value)} required />
+            <input
+              className={inputClass}
+              type="email"
+              placeholder="example@email.com"
+              value={form.email}
+              onChange={e => set('email', e.target.value)}
+              required
+            />
           </div>
 
           <div className="form-group">
             <label className="form-label">الباسورد</label>
-            <input className={inputClass} type="password" placeholder="••••••••" value={form.password}
-              onChange={e => set('password', e.target.value)} required minLength={6} />
+            <input
+              className={inputClass}
+              type="password"
+              placeholder="••••••••"
+              value={form.password}
+              onChange={e => set('password', e.target.value)}
+              required
+              minLength={6}
+            />
           </div>
 
-          <button type="submit" className={`btn ${isTrainer ? 'btn-primary' : 'btn-blue'} btn-block`} disabled={loading}>
-            {loading ? <span className="spinner"/> : mode === 'register' ? 'إنشاء الحساب' : 'تسجيل الدخول'}
+          <button
+            type="submit"
+            className={`btn ${isTrainer ? 'btn-primary' : 'btn-blue'} btn-block`}
+            disabled={loading}
+          >
+            {loading
+              ? <span className="spinner"/>
+              : mode === 'register' ? 'إنشاء الحساب' : 'تسجيل الدخول'
+            }
           </button>
         </form>
 
@@ -429,7 +585,7 @@ function AuthPage({ role, mode, setMode, onBack, onSuccess }) {
 // ─── TRAINER DASHBOARD ────────────────────────────────────────────────────────
 function TrainerDashboard({ profile }) {
   const [internships, setInternships] = useState([]);
-  const [tab, setTab]    = useState('mine'); // mine | add
+  const [tab, setTab]    = useState('mine');
   const [form, setForm]  = useState({ field:'', description:'' });
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
@@ -437,7 +593,11 @@ function TrainerDashboard({ profile }) {
 
   const load = useCallback(async () => {
     setFetching(true);
-    const { data } = await supabase.from('internships').select('*').eq('trainer_id', profile.id).order('created_at', { ascending: false });
+    const { data } = await supabase
+      .from('internships')
+      .select('*')
+      .eq('trainer_id', profile.id)
+      .order('created_at', { ascending: false });
     setInternships(data || []);
     setFetching(false);
   }, [profile.id]);
@@ -448,9 +608,19 @@ function TrainerDashboard({ profile }) {
     e.preventDefault();
     if (!form.field.trim()) return;
     setLoading(true);
-    const { error } = await supabase.from('internships').insert({ trainer_id: profile.id, field: form.field, description: form.description });
+    const { error } = await supabase.from('internships').insert({
+      trainer_id: profile.id,
+      field: form.field,
+      description: form.description
+    });
     setLoading(false);
-    if (!error) { setMsg('تمت الإضافة بنجاح ✅'); setForm({ field:'', description:'' }); load(); setTab('mine'); setTimeout(() => setMsg(''), 3000); }
+    if (!error) {
+      setMsg('تمت الإضافة بنجاح ✅');
+      setForm({ field:'', description:'' });
+      load();
+      setTab('mine');
+      setTimeout(() => setMsg(''), 3000);
+    }
   }
 
   async function handleDelete(id) {
@@ -483,13 +653,22 @@ function TrainerDashboard({ profile }) {
           <form onSubmit={handleAdd}>
             <div className="form-group">
               <label className="form-label">المجال</label>
-              <input className="form-input" placeholder="مثال: تطوير ويب، تسويق رقمي، تصميم جرافيك..."
-                value={form.field} onChange={e => setForm(f=>({...f,field:e.target.value}))} required />
+              <input
+                className="form-input"
+                placeholder="مثال: تطوير ويب، تسويق رقمي، تصميم جرافيك..."
+                value={form.field}
+                onChange={e => setForm(f => ({...f, field: e.target.value}))}
+                required
+              />
             </div>
             <div className="form-group">
               <label className="form-label">وصف التدريب (اختياري)</label>
-              <textarea className="form-input" placeholder="اكتب تفاصيل التدريب، المدة، المتطلبات..."
-                value={form.description} onChange={e => setForm(f=>({...f,description:e.target.value}))} />
+              <textarea
+                className="form-input"
+                placeholder="اكتب تفاصيل التدريب، المدة، المتطلبات..."
+                value={form.description}
+                onChange={e => setForm(f => ({...f, description: e.target.value}))}
+              />
             </div>
             <button type="submit" className="btn btn-primary" disabled={loading}>
               {loading ? <span className="spinner"/> : 'إضافة التدريب'}
@@ -499,26 +678,29 @@ function TrainerDashboard({ profile }) {
       )}
 
       {tab === 'mine' && (
-        fetching ? <div className="empty"><div className="empty-icon">⏳</div><h4>جاري التحميل...</h4></div>
-        : internships.length === 0
-          ? <div className="empty">
-              <div className="empty-icon">📭</div>
-              <h4>لا يوجد تدريبات بعد</h4>
-              <p>اضغط على "أضف تدريب" لنشر أول فرصة تدريبية</p>
-            </div>
-          : <div className="grid">
-              {internships.map(i => (
-                <div key={i.id} className="intern-card">
-                  <span className="intern-field">{i.field}</span>
-                  <h4>{profile.company_name || profile.name}</h4>
-                  {i.description && <p className="intern-desc">{i.description}</p>}
-                  <div className="intern-meta">
-                    <span>{fmt(i.created_at)}</span>
-                    <button className="btn btn-danger btn-sm" onClick={() => handleDelete(i.id)}>حذف 🗑️</button>
+        fetching
+          ? <div className="empty"><div className="empty-icon">⏳</div><h4>جاري التحميل...</h4></div>
+          : internships.length === 0
+            ? <div className="empty">
+                <div className="empty-icon">📭</div>
+                <h4>لا يوجد تدريبات بعد</h4>
+                <p>اضغط على "أضف تدريب" لنشر أول فرصة تدريبية</p>
+              </div>
+            : <div className="grid">
+                {internships.map(i => (
+                  <div key={i.id} className="intern-card">
+                    <span className="intern-field">{i.field}</span>
+                    <h4>{profile.company_name || profile.name}</h4>
+                    {i.description && <p className="intern-desc">{i.description}</p>}
+                    <div className="intern-meta">
+                      <span>{fmt(i.created_at)}</span>
+                      <button className="btn btn-danger btn-sm" onClick={() => handleDelete(i.id)}>
+                        حذف 🗑️
+                      </button>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
       )}
     </div>
   );
@@ -527,15 +709,16 @@ function TrainerDashboard({ profile }) {
 // ─── TRAINEE DASHBOARD ────────────────────────────────────────────────────────
 function TraineeDashboard({ profile }) {
   const [internships, setInternships] = useState([]);
-  const [applied, setApplied]  = useState(new Set());
-  const [selected, setSelected] = useState(null); // trainer info modal
+  const [applied, setApplied]   = useState(new Set());
+  const [selected, setSelected] = useState(null);
   const [trainerInfo, setTrainerInfo] = useState(null);
-  const [loading, setLoading]  = useState(false);
+  const [loading, setLoading]   = useState(false);
   const [fetching, setFetching] = useState(true);
-  const [tab, setTab] = useState('all'); // all | mine
+  const [tab, setTab]           = useState('all');
 
   const loadAll = useCallback(async () => {
     setFetching(true);
+
     const { data: interns } = await supabase
       .from('internships')
       .select('*, profiles!trainer_id(id, name, company_name, phone, email)')
@@ -555,7 +738,10 @@ function TraineeDashboard({ profile }) {
 
   async function handleApply(internship) {
     setLoading(internship.id);
-    const { error } = await supabase.from('applications').insert({ trainee_id: profile.id, internship_id: internship.id });
+    const { error } = await supabase.from('applications').insert({
+      trainee_id: profile.id,
+      internship_id: internship.id
+    });
     if (!error) {
       setApplied(prev => new Set([...prev, internship.id]));
       setTrainerInfo(internship.profiles);
@@ -564,7 +750,7 @@ function TraineeDashboard({ profile }) {
     setLoading(false);
   }
 
-  const myApplied = internships.filter(i => applied.has(i.id));
+  const myApplied   = internships.filter(i => applied.has(i.id));
   const displayList = tab === 'all' ? internships : myApplied;
 
   return (
@@ -587,9 +773,12 @@ function TraineeDashboard({ profile }) {
         ? <div className="empty"><div className="empty-icon">⏳</div><h4>جاري التحميل...</h4></div>
         : displayList.length === 0
           ? <div className="empty">
-              <div className="empty-icon">{tab==='all'?'📭':'📋'}</div>
+              <div className="empty-icon">{tab==='all' ? '📭' : '📋'}</div>
               <h4>{tab==='all' ? 'لا توجد فرص تدريب حالياً' : 'لم تتقدم على أي تدريب بعد'}</h4>
-              <p>{tab==='all' ? 'لم يضف أي مدرب فرص تدريب بعد، تحقق لاحقاً' : 'استعرض الفرص المتاحة وابدأ التقديم'}</p>
+              <p>{tab==='all'
+                ? 'لم يضف أي مدرب فرص تدريب بعد، تحقق لاحقاً'
+                : 'استعرض الفرص المتاحة وابدأ التقديم'
+              }</p>
             </div>
           : <div className="grid">
               {displayList.map(i => (
@@ -600,7 +789,10 @@ function TraineeDashboard({ profile }) {
                   <div className="intern-meta" style={{flexDirection:'column',alignItems:'flex-start',gap:8}}>
                     <span>{fmt(i.created_at)}</span>
                     {applied.has(i.id)
-                      ? <button className="applied-badge" onClick={() => { setSelected(i); setTrainerInfo(i.profiles); }}>
+                      ? <button
+                          className="applied-badge"
+                          onClick={() => { setSelected(i); setTrainerInfo(i.profiles); }}
+                        >
                           ✅ تقدمت — اعرض بيانات المدرب
                         </button>
                       : <button
@@ -618,7 +810,11 @@ function TraineeDashboard({ profile }) {
       }
 
       {selected && trainerInfo && (
-        <TrainerModal info={trainerInfo} field={selected.field} onClose={() => { setSelected(null); setTrainerInfo(null); }} />
+        <TrainerModal
+          info={trainerInfo}
+          field={selected.field}
+          onClose={() => { setSelected(null); setTrainerInfo(null); }}
+        />
       )}
     </div>
   );
@@ -664,6 +860,7 @@ function TrainerModal({ info, field, onClose }) {
   );
 }
 
+// ─── RENDER ───────────────────────────────────────────────────────────────────
 ReactDOM.createRoot(document.getElementById('root')).render(<App />);
 </script>
 </body>
