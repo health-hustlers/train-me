@@ -266,11 +266,7 @@ const SUPABASE_URL     = 'https://mcqugbvpiyrmqsndtiwu.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1jcXVnYnZwaXlybXFzbmR0aXd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODExMDA5NDAsImV4cCI6MjA5NjY3Njk0MH0.aspyIGCB_nzvAV2Si_fRrswKP31w10hLDDjlA6K2dxE';
 
 // التحقق من الـ Config قبل أي حاجة
-const CONFIG_MISSING =
-  !SUPABASE_URL ||
-  !SUPABASE_ANON_KEY ||
-  SUPABASE_URL === 'https://mcqugbvpiyrmqsndtiwu.supabase.co' ||
-  SUPABASE_ANON_KEY === 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1jcXVnYnZwaXlybXFzbmR0aXd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODExMDA5NDAsImV4cCI6MjA5NjY3Njk0MH0.aspyIGCB_nzvAV2Si_fRrswKP31w10hLDDjlA6K2dxE';
+const CONFIG_MISSING = !SUPABASE_URL || !SUPABASE_ANON_KEY;
 
 // إنشاء الـ Client بأمان
 let supabase = null;
