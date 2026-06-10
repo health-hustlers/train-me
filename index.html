@@ -288,7 +288,19 @@ const fmt = (d) => new Date(d).toLocaleDateString('ar-EG', {
 });
 
 // ─── CONFIG NOTICE (لما تكون البيانات فاضية) ─────────────────────────────────
-
+function ConfigNotice() {
+  return (
+    <div className="config-notice">
+      <div className="config-box">
+        <h2>⚠️ إعداد مطلوب</h2>
+        <p>يرجى إدخال بيانات Supabase الخاصة بك في أعلى الكود</p>
+        <code>SUPABASE_URL = 'https://xxxx.supabase.co'</code>
+        <code>SUPABASE_ANON_KEY = 'eyJ...'</code>
+        <p>تلاقيهم في: <strong>Supabase Dashboard → Settings → API</strong></p>
+      </div>
+    </div>
+  );
+}
 
 // ─── APP ──────────────────────────────────────────────────────────────────────
 function App() {
