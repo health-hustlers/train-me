@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>منصة التدريب</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --ink: #0f172a;
+    --ink-soft: #475569;
+    --ink-faint: #94a3b8;
+    --surface: #f8fafc;
+    --card: #ffffff;
+    --border: #e2e8f0;
+    --trainer: #7c3aed;
+    --trainer-light: #ede9fe;
+    --trainee: #0ea5e9;
+    --trainee-light: #e0f2fe;
+    --success: #10b981;
+    --danger: #ef4444;
+    --radius: 14px;
+    --shadow: 0 2px 12px rgba(0,0,0,0.07);
+    --shadow-lg: 0 8px 32px rgba(0,0,0,0.12);
+  }
+
+  body {
+    font-family: 'Cairo', sans-serif;
+    background: var(--surface);
+    color: var(--ink);
+    min-height: 100vh;
+  }
+
+  #root { min-height: 100vh; }
+
+  /* ── NAV ── */
+  .nav {
+    background: var(--card);
+    border-bottom: 1px solid var(--border);
+    padding: 0 24px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .nav-logo { font-weight: 800; font-size: 1.25rem; color: var(--trainer); display:flex;align-items:center;gap:8px; }
+  .nav-logo span { font-size:1.5rem; }
+  .nav-actions { display:flex;gap:10px;align-items:center; }
+  .nav-user { font-size:.85rem;color:var(--ink-soft);background:var(--surface);padding:6px 14px;border-radius:30px;border:1px solid var(--border); }
+
+  /* ── BUTTONS ── */
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 10px 20px; border-radius: 10px; border: none;
+    font-family: 'Cairo', sans-serif; font-weight: 600; font-size: .9rem;
+    cursor: pointer; transition: all .18s ease; text-decoration: none;
+  }
+  .btn:disabled { opacity:.5; cursor:not-allowed; }
+  .btn-primary { background: var(--trainer); color: #fff; }
+  .btn-primary:hover:not(:disabled) { background: #6d28d9; transform: translateY(-1px); box-shadow: 0 4px 14px rgba(124,58,237,.3); }
+  .btn-blue { background: var(--trainee); color: #fff; }
+  .btn-blue:hover:not(:disabled) { background: #0284c7; transform: translateY(-1px); box-shadow: 0 4px 14px rgba(14,165,233,.3); }
+  .btn-ghost { background: transparent; color: var(--ink-soft); border: 1.5px solid var(--border); }
+  .btn-ghost:hover:not(:disabled) { background: var(--surface); color: var(--ink); }
+  .btn-danger { background: var(--danger); color: #fff; }
+  .btn-danger:hover:not(:disabled) { background: #dc2626; }
+  .btn-sm { padding: 7px 14px; font-size: .82rem; border-radius: 8px; }
+  .btn-block { width: 100%; justify-content: center; }
+
+  /* ── LANDING ── */
+  .landing {
+    min-height: calc(100vh - 64px);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 40px 20px; text-align: center;
+  }
+  .landing-badge { background: var(--trainer-light); color: var(--trainer); font-size:.8rem;font-weight:700;padding:5px 14px;border-radius:30px;margin-bottom:20px; }
+  .landing h1 { font-size: clamp(2rem,5vw,3.2rem); font-weight: 800; line-height: 1.2; margin-bottom: 16px; }
+  .landing h1 em { font-style:normal; color: var(--trainer); }
+  .landing p { color: var(--ink-soft); font-size: 1.1rem; max-width: 520px; margin: 0 auto 40px; line-height: 1.8; }
+  .role-cards { display: flex; gap: 20px; flex-wrap: wrap; justify-content: center; }
+  .role-card {
+    background: var(--card); border: 2px solid var(--border);
+    border-radius: var(--radius); padding: 32px 28px; width: 240px;
+    cursor: pointer; transition: all .2s ease; text-align: center;
+  }
+  .role-card:hover { border-color: var(--trainer); box-shadow: var(--shadow-lg); transform: translateY(-4px); }
+  .role-card.trainer:hover { border-color: var(--trainer); }
+  .role-card.trainee:hover { border-color: var(--trainee); }
+  .role-icon { font-size: 3rem; margin-bottom: 14px; }
+  .role-card h3 { font-size: 1.2rem; font-weight: 700; margin-bottom: 8px; }
+  .role-card p { font-size: .85rem; color: var(--ink-soft); line-height: 1.6; }
+
+  /* ── AUTH FORMS ── */
+  .auth-wrap {
+    min-height: calc(100vh - 64px);
+    display: flex; align-items: center; justify-content: center; padding: 40px 20px;
+  }
+  .auth-card {
+    background: var(--card); border-radius: var(--radius);
+    padding: 40px; width: 100%; max-width: 440px;
+    box-shadow: var(--shadow-lg); border: 1px solid var(--border);
+  }
+  .auth-header { text-align: center; margin-bottom: 28px; }
+  .auth-role-badge {
+    display: inline-block; padding: 5px 16px; border-radius: 30px;
+    font-size: .8rem; font-weight: 700; margin-bottom: 12px;
+  }
+  .auth-role-badge.trainer { background: var(--trainer-light); color: var(--trainer); }
+  .auth-role-badge.trainee { background: var(--trainee-light); color: var(--trainee); }
+  .auth-header h2 { font-size: 1.6rem; font-weight: 800; margin-bottom: 6px; }
+  .auth-header p { color: var(--ink-soft); font-size: .9rem; }
+
+  /* ── FORM ELEMENTS ── */
+  .form-group { margin-bottom: 18px; }
+  .form-label { display: block; font-weight: 600; font-size: .88rem; margin-bottom: 7px; color: var(--ink); }
+  .form-input {
+    width: 100%; padding: 11px 14px; border: 1.5px solid var(--border);
+    border-radius: 10px; font-family: 'Cairo', sans-serif; font-size: .92rem;
+    background: var(--surface); color: var(--ink); transition: border-color .15s;
+    outline: none;
+  }
+  .form-input:focus { border-color: var(--trainer); background: #fff; }
+  .form-input.trainee:focus { border-color: var(--trainee); }
+  textarea.form-input { resize: vertical; min-height: 90px; }
+
+  .auth-switch { text-align:center; margin-top:20px; font-size:.88rem; color:var(--ink-soft); }
+  .auth-switch button { background:none;border:none;color:var(--trainer);font-weight:700;cursor:pointer;font-family:'Cairo',sans-serif; }
+
+  .error-msg { background:#fff1f2;color:var(--danger);border:1px solid #fecdd3;border-radius:9px;padding:10px 14px;font-size:.87rem;margin-bottom:16px; }
+  .success-msg { background:#f0fdf4;color:var(--success);border:1px solid #bbf7d0;border-radius:9px;padding:10px 14px;font-size:.87rem;margin-bottom:16px; }
+
+  /* ── DASHBOARD ── */
+  .dashboard { max-width: 960px; margin: 0 auto; padding: 36px 20px; }
+  .dashboard-header { margin-bottom: 32px; }
+  .dashboard-header h2 { font-size: 1.6rem; font-weight: 800; margin-bottom: 6px; }
+  .dashboard-header p { color: var(--ink-soft); }
+
+  .section-title {
+    font-size: 1.1rem; font-weight: 700; margin-bottom: 18px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .section-title::after { content:''; flex:1; height:1px; background:var(--border); }
+
+  /* ── ADD INTERNSHIP FORM ── */
+  .add-form {
+    background: var(--card); border: 1.5px dashed var(--border);
+    border-radius: var(--radius); padding: 24px; margin-bottom: 28px;
+  }
+  .add-form h3 { font-weight: 700; margin-bottom: 18px; color: var(--ink); }
+
+  /* ── INTERNSHIP CARDS ── */
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 18px; }
+  .intern-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 22px; transition: all .2s;
+    position: relative; overflow: hidden;
+  }
+  .intern-card::before {
+    content:''; position:absolute; top:0;right:0;left:0; height:4px;
+    background: linear-gradient(90deg, var(--trainer), var(--trainee));
+  }
+  .intern-card:hover { box-shadow: var(--shadow-lg); transform: translateY(-2px); }
+  .intern-field {
+    display: inline-block; background: var(--trainer-light); color: var(--trainer);
+    font-size: .8rem; font-weight: 700; padding: 4px 12px; border-radius: 20px; margin-bottom: 12px;
+  }
+  .intern-card h4 { font-size: 1rem; font-weight: 700; margin-bottom: 6px; }
+  .intern-desc { font-size: .87rem; color: var(--ink-soft); line-height: 1.6; margin-bottom: 14px; }
+  .intern-meta { display:flex;align-items:center;justify-content:space-between;font-size:.8rem;color:var(--ink-faint); }
+  .intern-meta-company { font-weight: 600; color: var(--ink-soft); }
+
+  /* ── TRAINER INFO MODAL ── */
+  .overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,.45);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 999; padding: 20px; backdrop-filter: blur(2px);
+  }
+  .modal {
+    background: var(--card); border-radius: var(--radius);
+    padding: 36px; width: 100%; max-width: 420px;
+    box-shadow: var(--shadow-lg); animation: pop .2s ease;
+  }
+  @keyframes pop { from { transform: scale(.93); opacity:0; } to { transform: scale(1); opacity:1; } }
+  .modal-header { display:flex;align-items:center;justify-content:space-between;margin-bottom:24px; }
+  .modal-header h3 { font-size:1.2rem;font-weight:800; }
+  .modal-close { background:none;border:none;cursor:pointer;font-size:1.3rem;color:var(--ink-soft); }
+  .info-row { display:flex;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid var(--border); }
+  .info-row:last-child { border-bottom:none; }
+  .info-icon { width:36px;height:36px;border-radius:9px;background:var(--trainer-light);display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0; }
+  .info-label { font-size:.75rem;color:var(--ink-faint);margin-bottom:2px; }
+  .info-value { font-size:.92rem;font-weight:600; }
+
+  /* ── EMPTY STATE ── */
+  .empty { text-align:center;padding:60px 20px;color:var(--ink-soft); }
+  .empty-icon { font-size:3rem;margin-bottom:14px; }
+  .empty h4 { font-size:1.05rem;font-weight:700;margin-bottom:6px;color:var(--ink); }
+  .empty p { font-size:.88rem;line-height:1.7; }
+
+  /* ── TABS ── */
+  .tabs { display:flex;gap:6px;margin-bottom:24px;background:var(--surface);padding:5px;border-radius:12px;width:fit-content; }
+  .tab { padding:8px 20px;border-radius:9px;border:none;font-family:'Cairo',sans-serif;font-weight:600;font-size:.88rem;cursor:pointer;transition:all .15s;color:var(--ink-soft);background:transparent; }
+  .tab.active { background:var(--card);color:var(--trainer);box-shadow:var(--shadow); }
+
+  .spinner { display:inline-block;width:18px;height:18px;border:2.5px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+
+  .applied-badge { display:inline-flex;align-items:center;gap:5px;background:#f0fdf4;color:var(--success);border:1px solid #bbf7d0;border-radius:8px;padding:6px 12px;font-size:.82rem;font-weight:700; }
+
+  @media(max-width:600px) {
+    .auth-card { padding:28px 20px; }
+    .role-cards { flex-direction:column;align-items:center; }
+    .role-card { width:100%;max-width:300px; }
+    .modal { padding:24px 18px; }
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useEffect, useCallback } = React;
+
+// ─── SUPABASE CONFIG ───────────────────────────────────────────────────────────
+// ضع هنا بيانات مشروعك من Supabase Dashboard → Settings → API
+const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// ─── HELPERS ─────────────────────────────────────────────────────────────────
+const fmt = (d) => new Date(d).toLocaleDateString('ar-EG', { year:'numeric', month:'long', day:'numeric' });
+
+// ─── APP ──────────────────────────────────────────────────────────────────────
+function App() {
+  const [page, setPage]       = useState('landing');   // landing | auth | dashboard
+  const [role, setRole]       = useState(null);        // trainer | trainee
+  const [authMode, setAuthMode] = useState('login');   // login | register
+  const [user, setUser]       = useState(null);
+  const [profile, setProfile] = useState(null);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) loadUser(session.user);
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session) loadUser(session.user);
+      else { setUser(null); setProfile(null); setPage('landing'); }
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+
+  async function loadUser(u) {
+    setUser(u);
+    const { data } = await supabase.from('profiles').select('*').eq('id', u.id).single();
+    if (data) { setProfile(data); setPage('dashboard'); }
+  }
+
+  async function handleLogout() {
+    await supabase.auth.signOut();
+    setRole(null); setPage('landing');
+  }
+
+  return (
+    <div>
+      <nav className="nav">
+        <div className="nav-logo"><span>🎓</span> منصة التدريب</div>
+        <div className="nav-actions">
+          {user && profile && <span className="nav-user">👋 {profile.name}</span>}
+          {user
+            ? <button className="btn btn-ghost btn-sm" onClick={handleLogout}>تسجيل خروج</button>
+            : page !== 'landing' && <button className="btn btn-ghost btn-sm" onClick={() => setPage('landing')}>← الرئيسية</button>
+          }
+        </div>
+      </nav>
+
+      {page === 'landing' && (
+        <Landing onSelect={(r) => { setRole(r); setAuthMode('register'); setPage('auth'); }}
+                 onLogin={(r) => { setRole(r); setAuthMode('login'); setPage('auth'); }} />
+      )}
+      {page === 'auth' && (
+        <AuthPage role={role} mode={authMode} setMode={setAuthMode}
+                  onBack={() => setPage('landing')} onSuccess={loadUser} />
+      )}
+      {page === 'dashboard' && profile && (
+        profile.role === 'trainer'
+          ? <TrainerDashboard profile={profile} />
+          : <TraineeDashboard profile={profile} />
+      )}
+    </div>
+  );
+}
+
+// ─── LANDING ──────────────────────────────────────────────────────────────────
+function Landing({ onSelect, onLogin }) {
+  return (
+    <div className="landing">
+      <div className="landing-badge">🚀 ابدأ رحلتك المهنية</div>
+      <h1>ابحث عن <em>تدريبك المثالي</em><br/>أو درّب الجيل القادم</h1>
+      <p>منصة تربط المتدربين الطموحين بالشركات والمدربين المحترفين في مختلف المجالات</p>
+      <div className="role-cards">
+        <div className="role-card trainer" onClick={() => onSelect('trainer')}>
+          <div className="role-icon">🏢</div>
+          <h3>مدرب / شركة</h3>
+          <p>أضف فرص تدريبية وتواصل مع المتدربين المناسبين</p>
+          <br/>
+          <button className="btn btn-primary btn-sm" style={{width:'100%',justifyContent:'center'}}>سجّل كمدرب</button>
+          <br/><br/>
+          <button className="btn btn-ghost btn-sm" style={{width:'100%',justifyContent:'center'}} onClick={(e)=>{e.stopPropagation();onLogin('trainer')}}>دخول</button>
+        </div>
+        <div className="role-card trainee" onClick={() => onSelect('trainee')}>
+          <div className="role-icon">👨‍💻</div>
+          <h3>متدرب</h3>
+          <p>استعرض فرص التدريب وقدّم على ما يناسب مهاراتك</p>
+          <br/>
+          <button className="btn btn-blue btn-sm" style={{width:'100%',justifyContent:'center'}}>سجّل كمتدرب</button>
+          <br/><br/>
+          <button className="btn btn-ghost btn-sm" style={{width:'100%',justifyContent:'center'}} onClick={(e)=>{e.stopPropagation();onLogin('trainee')}}>دخول</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── AUTH PAGE ────────────────────────────────────────────────────────────────
+function AuthPage({ role, mode, setMode, onBack, onSuccess }) {
+  const [form, setForm]   = useState({ name:'', phone:'', email:'', password:'', company_name:'' });
+  const [loading, setLoading] = useState(false);
+  const [error, setError]   = useState('');
+  const isTrainer = role === 'trainer';
+
+  const set = (k, v) => setForm(f => ({...f, [k]: v}));
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    setError(''); setLoading(true);
+
+    if (mode === 'register') {
+      const { data, error: err } = await supabase.auth.signUp({
+        email: form.email,
+        password: form.password,
+        options: { data: { name: form.name, phone: form.phone, role, company_name: form.company_name || null } }
+      });
+      if (err) { setError(err.message); setLoading(false); return; }
+      if (data.user) onSuccess(data.user);
+    } else {
+      const { data, error: err } = await supabase.auth.signInWithPassword({ email: form.email, password: form.password });
+      if (err) { setError('الإيميل أو الباسورد غلط'); setLoading(false); return; }
+      if (data.user) onSuccess(data.user);
+    }
+    setLoading(false);
+  }
+
+  const inputClass = `form-input${isTrainer ? '' : ' trainee'}`;
+
+  return (
+    <div className="auth-wrap">
+      <div className="auth-card">
+        <div className="auth-header">
+          <span className={`auth-role-badge ${role}`}>{isTrainer ? '🏢 مدرب / شركة' : '👨‍💻 متدرب'}</span>
+          <h2>{mode === 'register' ? 'إنشاء حساب' : 'تسجيل الدخول'}</h2>
+          <p>{mode === 'register' ? 'أدخل بياناتك لإنشاء حسابك' : 'أهلاً بعودتك!'}</p>
+        </div>
+
+        {error && <div className="error-msg">⚠️ {error}</div>}
+
+        <form onSubmit={handleSubmit}>
+          {mode === 'register' && <>
+            <div className="form-group">
+              <label className="form-label">{isTrainer ? 'اسم الشركة / المدرب' : 'الاسم بالكامل'}</label>
+              <input className={inputClass} placeholder="اكتب اسمك هنا" value={form.name}
+                onChange={e => set('name', e.target.value)} required />
+            </div>
+            {isTrainer && (
+              <div className="form-group">
+                <label className="form-label">اسم الشركة</label>
+                <input className={inputClass} placeholder="شركة ..." value={form.company_name}
+                  onChange={e => set('company_name', e.target.value)} />
+              </div>
+            )}
+            <div className="form-group">
+              <label className="form-label">رقم التليفون</label>
+              <input className={inputClass} type="tel" placeholder="01xxxxxxxxx" value={form.phone}
+                onChange={e => set('phone', e.target.value)} required />
+            </div>
+          </>}
+
+          <div className="form-group">
+            <label className="form-label">الإيميل</label>
+            <input className={inputClass} type="email" placeholder="example@email.com" value={form.email}
+              onChange={e => set('email', e.target.value)} required />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">الباسورد</label>
+            <input className={inputClass} type="password" placeholder="••••••••" value={form.password}
+              onChange={e => set('password', e.target.value)} required minLength={6} />
+          </div>
+
+          <button type="submit" className={`btn ${isTrainer ? 'btn-primary' : 'btn-blue'} btn-block`} disabled={loading}>
+            {loading ? <span className="spinner"/> : mode === 'register' ? 'إنشاء الحساب' : 'تسجيل الدخول'}
+          </button>
+        </form>
+
+        <div className="auth-switch">
+          {mode === 'register'
+            ? <>عندك حساب؟ <button onClick={() => setMode('login')}>سجّل دخول</button></>
+            : <>مش عندك حساب؟ <button onClick={() => setMode('register')}>أنشئ حساب</button></>
+          }
+        </div>
+        <div className="auth-switch" style={{marginTop:10}}>
+          <button onClick={onBack} style={{color:'var(--ink-soft)'}}>← رجوع للرئيسية</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── TRAINER DASHBOARD ────────────────────────────────────────────────────────
+function TrainerDashboard({ profile }) {
+  const [internships, setInternships] = useState([]);
+  const [tab, setTab]    = useState('mine'); // mine | add
+  const [form, setForm]  = useState({ field:'', description:'' });
+  const [loading, setLoading] = useState(false);
+  const [fetching, setFetching] = useState(true);
+  const [msg, setMsg]    = useState('');
+
+  const load = useCallback(async () => {
+    setFetching(true);
+    const { data } = await supabase.from('internships').select('*').eq('trainer_id', profile.id).order('created_at', { ascending: false });
+    setInternships(data || []);
+    setFetching(false);
+  }, [profile.id]);
+
+  useEffect(() => { load(); }, [load]);
+
+  async function handleAdd(e) {
+    e.preventDefault();
+    if (!form.field.trim()) return;
+    setLoading(true);
+    const { error } = await supabase.from('internships').insert({ trainer_id: profile.id, field: form.field, description: form.description });
+    setLoading(false);
+    if (!error) { setMsg('تمت الإضافة بنجاح ✅'); setForm({ field:'', description:'' }); load(); setTab('mine'); setTimeout(() => setMsg(''), 3000); }
+  }
+
+  async function handleDelete(id) {
+    if (!confirm('هتحذف التدريب ده؟')) return;
+    await supabase.from('internships').delete().eq('id', id);
+    load();
+  }
+
+  return (
+    <div className="dashboard">
+      <div className="dashboard-header">
+        <h2>🏢 لوحة تحكم المدرب</h2>
+        <p>أهلاً {profile.name} — تقدر تضيف وتدير فرص التدريب بتاعتك من هنا</p>
+      </div>
+
+      <div className="tabs">
+        <button className={`tab ${tab==='mine'?'active':''}`} onClick={() => setTab('mine')}>
+          📋 تدريباتي ({internships.length})
+        </button>
+        <button className={`tab ${tab==='add'?'active':''}`} onClick={() => setTab('add')}>
+          ➕ أضف تدريب
+        </button>
+      </div>
+
+      {msg && <div className="success-msg">{msg}</div>}
+
+      {tab === 'add' && (
+        <div className="add-form">
+          <h3>➕ إضافة فرصة تدريب جديدة</h3>
+          <form onSubmit={handleAdd}>
+            <div className="form-group">
+              <label className="form-label">المجال</label>
+              <input className="form-input" placeholder="مثال: تطوير ويب، تسويق رقمي، تصميم جرافيك..."
+                value={form.field} onChange={e => setForm(f=>({...f,field:e.target.value}))} required />
+            </div>
+            <div className="form-group">
+              <label className="form-label">وصف التدريب (اختياري)</label>
+              <textarea className="form-input" placeholder="اكتب تفاصيل التدريب، المدة، المتطلبات..."
+                value={form.description} onChange={e => setForm(f=>({...f,description:e.target.value}))} />
+            </div>
+            <button type="submit" className="btn btn-primary" disabled={loading}>
+              {loading ? <span className="spinner"/> : 'إضافة التدريب'}
+            </button>
+          </form>
+        </div>
+      )}
+
+      {tab === 'mine' && (
+        fetching ? <div className="empty"><div className="empty-icon">⏳</div><h4>جاري التحميل...</h4></div>
+        : internships.length === 0
+          ? <div className="empty">
+              <div className="empty-icon">📭</div>
+              <h4>لا يوجد تدريبات بعد</h4>
+              <p>اضغط على "أضف تدريب" لنشر أول فرصة تدريبية</p>
+            </div>
+          : <div className="grid">
+              {internships.map(i => (
+                <div key={i.id} className="intern-card">
+                  <span className="intern-field">{i.field}</span>
+                  <h4>{profile.company_name || profile.name}</h4>
+                  {i.description && <p className="intern-desc">{i.description}</p>}
+                  <div className="intern-meta">
+                    <span>{fmt(i.created_at)}</span>
+                    <button className="btn btn-danger btn-sm" onClick={() => handleDelete(i.id)}>حذف 🗑️</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+      )}
+    </div>
+  );
+}
+
+// ─── TRAINEE DASHBOARD ────────────────────────────────────────────────────────
+function TraineeDashboard({ profile }) {
+  const [internships, setInternships] = useState([]);
+  const [applied, setApplied]  = useState(new Set());
+  const [selected, setSelected] = useState(null); // trainer info modal
+  const [trainerInfo, setTrainerInfo] = useState(null);
+  const [loading, setLoading]  = useState(false);
+  const [fetching, setFetching] = useState(true);
+  const [tab, setTab] = useState('all'); // all | mine
+
+  const loadAll = useCallback(async () => {
+    setFetching(true);
+    const { data: interns } = await supabase
+      .from('internships')
+      .select('*, profiles!trainer_id(id, name, company_name, phone, email)')
+      .order('created_at', { ascending: false });
+
+    const { data: apps } = await supabase
+      .from('applications')
+      .select('internship_id')
+      .eq('trainee_id', profile.id);
+
+    setInternships(interns || []);
+    setApplied(new Set((apps || []).map(a => a.internship_id)));
+    setFetching(false);
+  }, [profile.id]);
+
+  useEffect(() => { loadAll(); }, [loadAll]);
+
+  async function handleApply(internship) {
+    setLoading(internship.id);
+    const { error } = await supabase.from('applications').insert({ trainee_id: profile.id, internship_id: internship.id });
+    if (!error) {
+      setApplied(prev => new Set([...prev, internship.id]));
+      setTrainerInfo(internship.profiles);
+      setSelected(internship);
+    }
+    setLoading(false);
+  }
+
+  const myApplied = internships.filter(i => applied.has(i.id));
+  const displayList = tab === 'all' ? internships : myApplied;
+
+  return (
+    <div className="dashboard">
+      <div className="dashboard-header">
+        <h2>👨‍💻 استعرض فرص التدريب</h2>
+        <p>أهلاً {profile.name} — ابحث عن تدريب يناسبك وقدّم في ثانية</p>
+      </div>
+
+      <div className="tabs">
+        <button className={`tab ${tab==='all'?'active':''}`} onClick={() => setTab('all')}>
+          🔍 كل الفرص ({internships.length})
+        </button>
+        <button className={`tab ${tab==='mine'?'active':''}`} onClick={() => setTab('mine')}>
+          ✅ تقديماتي ({applied.size})
+        </button>
+      </div>
+
+      {fetching
+        ? <div className="empty"><div className="empty-icon">⏳</div><h4>جاري التحميل...</h4></div>
+        : displayList.length === 0
+          ? <div className="empty">
+              <div className="empty-icon">{tab==='all'?'📭':'📋'}</div>
+              <h4>{tab==='all' ? 'لا توجد فرص تدريب حالياً' : 'لم تتقدم على أي تدريب بعد'}</h4>
+              <p>{tab==='all' ? 'لم يضف أي مدرب فرص تدريب بعد، تحقق لاحقاً' : 'استعرض الفرص المتاحة وابدأ التقديم'}</p>
+            </div>
+          : <div className="grid">
+              {displayList.map(i => (
+                <div key={i.id} className="intern-card">
+                  <span className="intern-field">{i.field}</span>
+                  <h4>{i.profiles?.company_name || i.profiles?.name || '—'}</h4>
+                  {i.description && <p className="intern-desc">{i.description}</p>}
+                  <div className="intern-meta" style={{flexDirection:'column',alignItems:'flex-start',gap:8}}>
+                    <span>{fmt(i.created_at)}</span>
+                    {applied.has(i.id)
+                      ? <button className="applied-badge" onClick={() => { setSelected(i); setTrainerInfo(i.profiles); }}>
+                          ✅ تقدمت — اعرض بيانات المدرب
+                        </button>
+                      : <button
+                          className="btn btn-blue btn-sm"
+                          disabled={loading === i.id}
+                          onClick={() => handleApply(i)}
+                        >
+                          {loading === i.id ? <span className="spinner"/> : '📨 قدّم الآن'}
+                        </button>
+                    }
+                  </div>
+                </div>
+              ))}
+            </div>
+      }
+
+      {selected && trainerInfo && (
+        <TrainerModal info={trainerInfo} field={selected.field} onClose={() => { setSelected(null); setTrainerInfo(null); }} />
+      )}
+    </div>
+  );
+}
+
+// ─── TRAINER INFO MODAL ───────────────────────────────────────────────────────
+function TrainerModal({ info, field, onClose }) {
+  return (
+    <div className="overlay" onClick={e => e.target.classList.contains('overlay') && onClose()}>
+      <div className="modal">
+        <div className="modal-header">
+          <h3>✅ تم التقديم بنجاح!</h3>
+          <button className="modal-close" onClick={onClose}>✕</button>
+        </div>
+        <p style={{color:'var(--ink-soft)',fontSize:'.88rem',marginBottom:20,lineHeight:1.7}}>
+          تقدمت على تدريب في مجال <strong>{field}</strong> — إليك بيانات المدرب للتواصل معه:
+        </p>
+        <div className="info-row">
+          <div className="info-icon">🏢</div>
+          <div>
+            <div className="info-label">الشركة / المدرب</div>
+            <div className="info-value">{info.company_name || info.name}</div>
+          </div>
+        </div>
+        <div className="info-row">
+          <div className="info-icon">📧</div>
+          <div>
+            <div className="info-label">الإيميل</div>
+            <div className="info-value" style={{direction:'ltr'}}>{info.email}</div>
+          </div>
+        </div>
+        <div className="info-row">
+          <div className="info-icon">📞</div>
+          <div>
+            <div className="info-label">التليفون</div>
+            <div className="info-value" style={{direction:'ltr'}}>{info.phone}</div>
+          </div>
+        </div>
+        <br/>
+        <button className="btn btn-primary btn-block" onClick={onClose}>حسناً، شكراً!</button>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
