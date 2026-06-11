@@ -593,20 +593,36 @@ function TrainerDashboard({ profile }) {
 
   const loadApplicants = useCallback(async () => {
     setFetchingApps(true);
-    // جيب كل التقديمات على التدريبات بتاعت المدرب ده مع بيانات المتدرب
+
+    // أولاً: جيب IDs التدريبات بتاعت المدرب ده
+    const { data: myInternships } = await supabase
+      .from('internships')
+      .select('id')
+      .eq('trainer_id', profile.id);
+
+    const myIds = (myInternships || []).map(i => i.id);
+
+    if (myIds.length === 0) {
+      setApplicants([]);
+      setFetchingApps(false);
+      return;
+    }
+
+    // ثانياً: جيب التقديمات على التدريبات دي بس
     const { data } = await supabase
       .from('applications')
       .select(`
         id,
         created_at,
         internship_id,
+        cv_url,
+        linkedin_url,
         internships!internship_id ( field ),
         profiles!trainee_id ( name, email, phone )
       `)
+      .in('internship_id', myIds)
       .order('created_at', { ascending: false });
 
-    // فلتر بس التقديمات على تدريبات المدرب ده
-    // (لو RLS مش مفعّل، نفلتر يدوي)
     setApplicants(data || []);
     setFetchingApps(false);
   }, []);
