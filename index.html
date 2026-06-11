@@ -220,6 +220,24 @@
 
   .applied-badge { display:inline-flex;align-items:center;gap:5px;background:#f0fdf4;color:var(--success);border:1px solid #bbf7d0;border-radius:8px;padding:6px 12px;font-size:.82rem;font-weight:700;cursor:pointer; }
 
+  /* ── PROFILE SECTION ── */
+  .profile-card {
+    background: var(--card); border: 1.5px solid var(--border);
+    border-radius: var(--radius); padding: 28px; max-width: 540px;
+  }
+  .profile-card h3 { font-size:1.05rem; font-weight:700; margin-bottom:18px; color:var(--ink); }
+  .profile-saved-badge {
+    display:inline-flex;align-items:center;gap:5px;
+    background:#f0fdf4;color:var(--success);border:1px solid #bbf7d0;
+    border-radius:8px;padding:5px 12px;font-size:.82rem;font-weight:700;margin-bottom:14px;
+  }
+  .autofill-hint {
+    display:flex;align-items:center;gap:8px;
+    background:var(--trainee-light);color:var(--trainee);
+    border-radius:9px;padding:10px 14px;font-size:.84rem;font-weight:600;margin-bottom:20px;
+    border:1px solid #bae6fd;
+  }
+
   /* ── LOADING SCREEN ── */
   .loading-screen {
     min-height: 100vh; display:flex; align-items:center; justify-content:center;
@@ -244,6 +262,9 @@
 
 <script>
   // ─── تهيئة Supabase قبل React ───────────────────────────────────────────────
+  // ⚠️ مهم: لازم تضيف الـ columns دي في جدول profiles في Supabase:
+  //   ALTER TABLE profiles ADD COLUMN IF NOT EXISTS cv_url TEXT;
+  //   ALTER TABLE profiles ADD COLUMN IF NOT EXISTS linkedin_url TEXT;
   const SUPABASE_URL      = 'https://mcqugbvpiyrmqsndtiwu.supabase.co';
   const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1jcXVnYnZwaXlybXFzbmR0aXd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODExMDA5NDAsImV4cCI6MjA5NjY3Njk0MH0.aspyIGCB_nzvAV2Si_fRrswKP31w10hLDDjlA6K2dxE';
 
@@ -842,6 +863,10 @@ function TraineeDashboard({ profile }) {
   const [fetching, setFetching]     = useState(true);
   const [tab, setTab]               = useState('all');
 
+  // بيانات البروفايل المحفوظة
+  const [savedCv, setSavedCv]           = useState(profile.cv_url || '');
+  const [savedLinkedin, setSavedLinkedin] = useState(profile.linkedin_url || '');
+
   const loadAll = useCallback(async () => {
     setFetching(true);
     const { data: interns } = await supabase
@@ -885,11 +910,24 @@ function TraineeDashboard({ profile }) {
         <button className={`tab ${tab==='mine'?'active':''}`} onClick={() => setTab('mine')}>
           ✅ تقديماتي ({applied.size})
         </button>
+        <button className={`tab ${tab==='profile'?'active':''}`} onClick={() => setTab('profile')}>
+          👤 بروفايلي
+        </button>
       </div>
 
-      {fetching
+      {/* تاب البروفايل */}
+      {tab === 'profile' && (
+        <TraineeProfileTab
+          profile={profile}
+          savedCv={savedCv}
+          savedLinkedin={savedLinkedin}
+          onSave={(cv, li) => { setSavedCv(cv); setSavedLinkedin(li); }}
+        />
+      )}
+
+      {fetching && tab !== 'profile'
         ? <div className="empty"><div className="empty-icon">⏳</div><h4>جاري التحميل...</h4></div>
-        : displayList.length === 0
+        : tab !== 'profile' && (displayList.length === 0
           ? <div className="empty">
               <div className="empty-icon">{tab==='all' ? '📭' : '📋'}</div>
               <h4>{tab==='all' ? 'لا توجد فرص تدريب حالياً' : 'لم تتقدم على أي تدريب بعد'}</h4>
@@ -924,6 +962,7 @@ function TraineeDashboard({ profile }) {
                 </div>
               ))}
             </div>
+        )
       }
 
       {/* modal التقديم مع السيرة ولينكدان */}
@@ -931,6 +970,8 @@ function TraineeDashboard({ profile }) {
         <ApplyModal
           internship={applyTarget}
           traineeId={profile.id}
+          defaultCv={savedCv}
+          defaultLinkedin={savedLinkedin}
           onClose={() => setApplyTarget(null)}
           onDone={handleApplyDone}
         />
@@ -948,12 +989,103 @@ function TraineeDashboard({ profile }) {
   );
 }
 
+// ─── TRAINEE PROFILE TAB ─────────────────────────────────────────────────────
+function TraineeProfileTab({ profile, savedCv, savedLinkedin, onSave }) {
+  const [cv, setCv]           = useState(savedCv || '');
+  const [linkedin, setLinkedin] = useState(savedLinkedin || '');
+  const [loading, setLoading] = useState(false);
+  const [msg, setMsg]         = useState('');
+  const [error, setError]     = useState('');
+
+  async function handleSave() {
+    setLoading(true);
+    setMsg('');
+    setError('');
+
+    const { error: err } = await supabase
+      .from('profiles')
+      .update({ cv_url: cv.trim() || null, linkedin_url: linkedin.trim() || null })
+      .eq('id', profile.id);
+
+    setLoading(false);
+    if (err) {
+      setError('حصل خطأ، حاول تاني');
+    } else {
+      onSave(cv.trim(), linkedin.trim());
+      setMsg('تم الحفظ بنجاح ✅ — هيتملوا تلقائياً في أي تقديم جديد');
+      setTimeout(() => setMsg(''), 4000);
+    }
+  }
+
+  const hasSaved = savedCv || savedLinkedin;
+
+  return (
+    <div className="profile-card">
+      <h3>👤 بيانات بروفايلك</h3>
+
+      {hasSaved && (
+        <div className="profile-saved-badge">
+          ✅ بياناتك محفوظة — هتتملى تلقائياً عند التقديم
+        </div>
+      )}
+
+      <p style={{fontSize:'.87rem',color:'var(--ink-soft)',marginBottom:20,lineHeight:1.7}}>
+        احفظ لينكدان والسيرة الذاتية هنا مرة واحدة وهيتملوا تلقائياً في كل تقديم من غير ما تكتبهم كل مرة.
+      </p>
+
+      {error && <div className="error-msg">⚠️ {error}</div>}
+      {msg   && <div className="success-msg">{msg}</div>}
+
+      <div className="form-group">
+        <label className="form-label">
+          📄 لينك السيرة الذاتية <span style={{color:'var(--ink-faint)',fontWeight:400}}>(اختياري)</span>
+        </label>
+        <input
+          className="form-input trainee"
+          type="url"
+          placeholder="https://drive.google.com/..."
+          value={cv}
+          onChange={e => setCv(e.target.value)}
+          dir="ltr"
+        />
+        <div style={{fontSize:'.78rem',color:'var(--ink-faint)',marginTop:5}}>
+          Google Drive أو Dropbox أو أي لينك مباشر
+        </div>
+      </div>
+
+      <div className="form-group">
+        <label className="form-label">
+          💼 حساب LinkedIn <span style={{color:'var(--ink-faint)',fontWeight:400}}>(اختياري)</span>
+        </label>
+        <input
+          className="form-input trainee"
+          type="url"
+          placeholder="https://linkedin.com/in/yourname"
+          value={linkedin}
+          onChange={e => setLinkedin(e.target.value)}
+          dir="ltr"
+        />
+      </div>
+
+      <button
+        className="btn btn-blue btn-block"
+        onClick={handleSave}
+        disabled={loading}
+      >
+        {loading ? <span className="spinner"/> : '💾 حفظ البيانات'}
+      </button>
+    </div>
+  );
+}
+
 // ─── APPLY MODAL ─────────────────────────────────────────────────────────────
-function ApplyModal({ internship, traineeId, onClose, onDone }) {
-  const [cvUrl, setCvUrl]           = useState('');
-  const [linkedinUrl, setLinkedinUrl] = useState('');
+function ApplyModal({ internship, traineeId, defaultCv, defaultLinkedin, onClose, onDone }) {
+  const [cvUrl, setCvUrl]           = useState(defaultCv || '');
+  const [linkedinUrl, setLinkedinUrl] = useState(defaultLinkedin || '');
   const [loading, setLoading]       = useState(false);
   const [error, setError]           = useState('');
+
+  const hasAutoFilled = (defaultCv || defaultLinkedin) ? true : false;
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -984,6 +1116,12 @@ function ApplyModal({ internship, traineeId, onClose, onDone }) {
           بتتقدم على تدريب في مجال <strong>{internship.field}</strong><br/>
           تقدر ترفق سيرتك الذاتية وحساب LinkedIn (اختياري)
         </p>
+
+        {hasAutoFilled && (
+          <div className="autofill-hint">
+             تم تعبئة بياناتك المحفوظة تلقائياً — راجعها وابعت!
+          </div>
+        )}
 
         {error && <div className="error-msg">⚠️ {error}</div>}
 
