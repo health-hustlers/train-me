@@ -1010,12 +1010,21 @@ function TrainerModal({ info, field, onClose }) {
           تقدمت على تدريب في مجال <strong>{field}</strong> — إليك بيانات المدرب للتواصل معه:
         </p>
         <div className="info-row">
-          <div className="info-icon">🏢</div>
+          <div className="info-icon">👤</div>
           <div>
-            <div className="info-label">الشركة / المدرب</div>
-            <div className="info-value">{info.company_name || info.name}</div>
+            <div className="info-label">اسم المدرب</div>
+            <div className="info-value">{info.name}</div>
           </div>
         </div>
+        {info.company_name && (
+          <div className="info-row">
+            <div className="info-icon">🏢</div>
+            <div>
+              <div className="info-label">الشركة</div>
+              <div className="info-value">{info.company_name}</div>
+            </div>
+          </div>
+        )}
         <div className="info-row">
           <div className="info-icon">📧</div>
           <div>
