@@ -1,1246 +1,1040 @@
+bash
+
+cat > /tmp/app.html << 'HTMLEOF'
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>منصة التدريب</title>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
-<!-- Supabase يتحمل أخيراً وبعدين يشغّل الـ app -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
-
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
 <style>
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
+/* ═══════════════════════════════════════════
+   TOKENS
+═══════════════════════════════════════════ */
 :root {
-  --ink: #0f172a;
-  --ink-soft: #475569;
-  --ink-faint: #94a3b8;
-  --surface: #f8fafc;
-  --card: #ffffff;
-  --border: #e2e8f0;
-  --trainer: #7c3aed;
-  --trainer-light: #ede9fe;
-  --trainee: #0ea5e9;
-  --trainee-light: #e0f2fe;
-  --success: #10b981;
-  --success-light: #f0fdf4;
-  --danger: #ef4444;
-  --danger-light: #fff1f2;
-  --warning: #f59e0b;
-  --radius: 14px;
-  --shadow: 0 2px 12px rgba(0,0,0,0.07);
-  --shadow-lg: 0 8px 32px rgba(0,0,0,0.12);
+  --bg:        #0f1117;
+  --bg2:       #161b27;
+  --surface:   #1e2535;
+  --border:    rgba(255,255,255,0.08);
+  --border2:   rgba(255,255,255,0.14);
+
+  --violet:    #8b5cf6;
+  --violet2:   #a78bfa;
+  --violet-dim:#8b5cf620;
+  --sky:       #38bdf8;
+  --sky-dim:   #38bdf818;
+  --green:     #34d399;
+  --green-dim: #34d39918;
+  --red:       #f87171;
+  --red-dim:   #f8717118;
+  --amber:     #fbbf24;
+
+  --ink:       #f1f5f9;
+  --ink2:      #94a3b8;
+  --ink3:      #475569;
+
+  --r:         12px;
+  --r2:        18px;
+  --sh:        0 4px 24px rgba(0,0,0,0.4);
+  --sh2:       0 12px 48px rgba(0,0,0,0.6);
 }
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
   font-family: 'Cairo', sans-serif;
-  background: var(--surface);
+  background: var(--bg);
   color: var(--ink);
   min-height: 100vh;
+  line-height: 1.6;
 }
 
-#root { min-height: 100vh; }
+/* ═══════════════════════════════════════════
+   UTILITY
+═══════════════════════════════════════════ */
+.hidden { display: none !important; }
 
-/* ── NAV ── */
-.nav {
-  background: var(--card);
+.chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 11px; border-radius: 30px;
+  font-size: .75rem; font-weight: 700; letter-spacing: .02em;
+}
+.chip-violet { background: var(--violet-dim); color: var(--violet2); border: 1px solid rgba(139,92,246,.25); }
+.chip-sky    { background: var(--sky-dim);    color: var(--sky);     border: 1px solid rgba(56,189,248,.25); }
+.chip-green  { background: var(--green-dim);  color: var(--green);   border: 1px solid rgba(52,211,153,.25); }
+.chip-red    { background: var(--red-dim);    color: var(--red);     border: 1px solid rgba(248,113,113,.25); }
+
+/* ═══════════════════════════════════════════
+   BUTTONS
+═══════════════════════════════════════════ */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+  padding: 11px 22px; border-radius: var(--r); border: none;
+  font-family: 'Cairo', sans-serif; font-size: .92rem; font-weight: 700;
+  cursor: pointer; transition: all .18s; white-space: nowrap; text-decoration: none;
+}
+.btn:disabled { opacity: .45; cursor: not-allowed; pointer-events: none; }
+.btn-violet {
+  background: var(--violet);
+  color: #fff;
+  box-shadow: 0 0 0 0 rgba(139,92,246,0);
+}
+.btn-violet:hover { background: #7c3aed; box-shadow: 0 0 20px rgba(139,92,246,.4); transform: translateY(-1px); }
+.btn-sky { background: var(--sky); color: #0f172a; }
+.btn-sky:hover { background: #0ea5e9; transform: translateY(-1px); box-shadow: 0 0 20px rgba(56,189,248,.35); }
+.btn-ghost {
+  background: transparent; color: var(--ink2);
+  border: 1.5px solid var(--border2);
+}
+.btn-ghost:hover { background: var(--surface); color: var(--ink); }
+.btn-red { background: var(--red-dim); color: var(--red); border: 1px solid rgba(248,113,113,.3); }
+.btn-red:hover { background: rgba(248,113,113,.25); }
+.btn-sm { padding: 7px 15px; font-size: .83rem; border-radius: 9px; }
+.btn-block { width: 100%; }
+
+/* ═══════════════════════════════════════════
+   INPUTS
+═══════════════════════════════════════════ */
+.field { margin-bottom: 16px; }
+.field label {
+  display: block; font-size: .83rem; font-weight: 700;
+  color: var(--ink2); margin-bottom: 6px; letter-spacing: .02em;
+}
+.field input, .field textarea, .field select {
+  width: 100%; padding: 11px 14px;
+  background: var(--bg2); color: var(--ink);
+  border: 1.5px solid var(--border2); border-radius: var(--r);
+  font-family: 'Cairo', sans-serif; font-size: .9rem;
+  outline: none; transition: border-color .15s;
+}
+.field input:focus, .field textarea:focus { border-color: var(--violet); background: var(--bg); }
+.field.sky input:focus, .field.sky textarea:focus { border-color: var(--sky); }
+textarea { resize: vertical; min-height: 90px; }
+
+/* ═══════════════════════════════════════════
+   ALERTS
+═══════════════════════════════════════════ */
+.alert {
+  padding: 11px 15px; border-radius: var(--r); font-size: .86rem;
+  font-weight: 600; margin-bottom: 16px; display: none;
+}
+.alert.show { display: block; }
+.alert-err  { background: var(--red-dim);   color: var(--red);   border: 1px solid rgba(248,113,113,.3); }
+.alert-ok   { background: var(--green-dim); color: var(--green); border: 1px solid rgba(52,211,153,.3); }
+
+/* ═══════════════════════════════════════════
+   NAV
+═══════════════════════════════════════════ */
+#nav {
+  height: 60px; padding: 0 28px;
+  display: flex; align-items: center; justify-content: space-between;
   border-bottom: 1px solid var(--border);
-  padding: 0 24px;
-  height: 64px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  background: rgba(15,17,23,.85); backdrop-filter: blur(12px);
+  position: sticky; top: 0; z-index: 200;
 }
 .nav-logo {
-  font-weight: 800;
-  font-size: 1.2rem;
-  color: var(--trainer);
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
-  user-select: none;
+  font-weight: 900; font-size: 1.15rem; color: var(--violet2);
+  display: flex; align-items: center; gap: 9px; cursor: pointer; user-select: none;
 }
-.nav-logo span { font-size: 1.4rem; }
-.nav-actions { display: flex; gap: 10px; align-items: center; }
-.nav-user {
-  font-size: .82rem;
-  color: var(--ink-soft);
-  background: var(--surface);
-  padding: 5px 13px;
-  border-radius: 30px;
-  border: 1px solid var(--border);
-  font-weight: 600;
+.logo-dot {
+  width: 10px; height: 10px; border-radius: 50%;
+  background: var(--violet);
+  box-shadow: 0 0 10px var(--violet);
+  animation: pulse 2.5s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%,100% { box-shadow: 0 0 6px var(--violet); }
+  50%      { box-shadow: 0 0 18px var(--violet); }
+}
+.nav-right { display: flex; align-items: center; gap: 10px; }
+.nav-name {
+  font-size: .8rem; font-weight: 700; color: var(--ink2);
+  background: var(--surface); padding: 5px 13px; border-radius: 30px;
+  border: 1px solid var(--border2);
 }
 
-/* ── BUTTONS ── */
-.btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 10px 20px;
-  border-radius: 10px;
-  border: none;
-  font-family: 'Cairo', sans-serif;
-  font-weight: 600;
-  font-size: .9rem;
-  cursor: pointer;
-  transition: all .18s ease;
-  text-decoration: none;
-  white-space: nowrap;
-}
-.btn:disabled { opacity: .5; cursor: not-allowed; }
-.btn-primary { background: var(--trainer); color: #fff; }
-.btn-primary:hover:not(:disabled) {
-  background: #6d28d9;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 14px rgba(124,58,237,.3);
-}
-.btn-blue { background: var(--trainee); color: #fff; }
-.btn-blue:hover:not(:disabled) {
-  background: #0284c7;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 14px rgba(14,165,233,.3);
-}
-.btn-ghost {
-  background: transparent;
-  color: var(--ink-soft);
-  border: 1.5px solid var(--border);
-}
-.btn-ghost:hover:not(:disabled) { background: var(--surface); color: var(--ink); }
-.btn-danger { background: var(--danger); color: #fff; }
-.btn-danger:hover:not(:disabled) { background: #dc2626; }
-.btn-outline-danger {
-  background: transparent;
-  color: var(--danger);
-  border: 1.5px solid #fecdd3;
-}
-.btn-outline-danger:hover:not(:disabled) { background: var(--danger-light); }
-.btn-sm { padding: 7px 14px; font-size: .82rem; border-radius: 8px; }
-.btn-block { width: 100%; justify-content: center; }
+/* ═══════════════════════════════════════════
+   SCREEN SYSTEM
+═══════════════════════════════════════════ */
+.screen { display: none; }
+.screen.active { display: block; }
 
-/* ── LANDING ── */
-.landing {
-  min-height: calc(100vh - 64px);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 40px 20px;
-  text-align: center;
+/* ═══════════════════════════════════════════
+   LANDING
+═══════════════════════════════════════════ */
+#screen-landing {
+  min-height: calc(100vh - 60px);
+  display: none; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 60px 20px; text-align: center;
+  position: relative; overflow: hidden;
 }
-.landing-badge {
-  background: var(--trainer-light);
-  color: var(--trainer);
-  font-size: .8rem;
-  font-weight: 700;
-  padding: 5px 16px;
-  border-radius: 30px;
-  margin-bottom: 20px;
-  display: inline-block;
+#screen-landing.active { display: flex; }
+
+/* subtle grid bg */
+#screen-landing::before {
+  content: '';
+  position: absolute; inset: 0;
+  background-image:
+    linear-gradient(rgba(139,92,246,.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(139,92,246,.06) 1px, transparent 1px);
+  background-size: 48px 48px;
+  pointer-events: none;
 }
-.landing h1 {
-  font-size: clamp(1.8rem, 5vw, 3rem);
-  font-weight: 800;
-  line-height: 1.25;
-  margin-bottom: 16px;
+/* glow blob */
+#screen-landing::after {
+  content: '';
+  position: absolute; top: -80px; left: 50%; transform: translateX(-50%);
+  width: 700px; height: 400px; border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(139,92,246,.18) 0%, transparent 70%);
+  pointer-events: none;
 }
-.landing h1 em { font-style: normal; color: var(--trainer); }
-.landing > p {
-  color: var(--ink-soft);
-  font-size: 1.05rem;
-  max-width: 500px;
-  margin: 0 auto 40px;
-  line-height: 1.8;
+
+.landing-eyebrow {
+  font-size: .78rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase;
+  color: var(--violet2); background: var(--violet-dim);
+  padding: 5px 16px; border-radius: 30px; margin-bottom: 24px;
+  border: 1px solid rgba(139,92,246,.25);
+  position: relative; z-index: 1;
+}
+.landing-h1 {
+  font-size: clamp(2rem, 5.5vw, 3.6rem);
+  font-weight: 900; line-height: 1.15;
+  margin-bottom: 18px;
+  position: relative; z-index: 1;
+}
+.landing-h1 span {
+  background: linear-gradient(135deg, var(--violet2), var(--sky));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+}
+.landing-sub {
+  color: var(--ink2); font-size: 1.05rem; max-width: 480px;
+  margin: 0 auto 48px; line-height: 1.85;
+  position: relative; z-index: 1;
 }
 .role-cards {
-  display: flex;
-  gap: 20px;
-  flex-wrap: wrap;
-  justify-content: center;
+  display: flex; gap: 20px; flex-wrap: wrap; justify-content: center;
+  position: relative; z-index: 1;
 }
 .role-card {
-  background: var(--card);
-  border: 2px solid var(--border);
-  border-radius: var(--radius);
-  padding: 30px 24px;
-  width: 230px;
-  cursor: pointer;
-  transition: all .2s ease;
-  text-align: center;
+  background: var(--bg2);
+  border: 1.5px solid var(--border2);
+  border-radius: var(--r2); padding: 32px 26px; width: 230px;
+  cursor: pointer; transition: all .22s; text-align: center;
 }
-.role-card:hover {
-  box-shadow: var(--shadow-lg);
-  transform: translateY(-4px);
-}
-.role-card.trainer:hover { border-color: var(--trainer); }
-.role-card.trainee:hover { border-color: var(--trainee); }
-.role-icon { font-size: 2.8rem; margin-bottom: 12px; }
-.role-card h3 { font-size: 1.15rem; font-weight: 700; margin-bottom: 8px; }
-.role-card > p { font-size: .83rem; color: var(--ink-soft); line-height: 1.6; margin-bottom: 20px; }
-.role-btns { display: flex; flex-direction: column; gap: 8px; }
+.role-card:hover { transform: translateY(-5px); border-color: var(--violet); box-shadow: 0 0 40px rgba(139,92,246,.2); }
+.role-card.sky:hover { border-color: var(--sky); box-shadow: 0 0 40px rgba(56,189,248,.2); }
+.role-icon { font-size: 2.6rem; margin-bottom: 14px; }
+.role-card h3 { font-size: 1.1rem; font-weight: 800; margin-bottom: 7px; }
+.role-card p  { font-size: .82rem; color: var(--ink2); line-height: 1.65; margin-bottom: 22px; }
+.role-btns    { display: flex; flex-direction: column; gap: 8px; }
 
-/* ── AUTH ── */
-.auth-wrap {
-  min-height: calc(100vh - 64px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 40px 20px;
+/* ═══════════════════════════════════════════
+   AUTH
+═══════════════════════════════════════════ */
+#screen-auth {
+  min-height: calc(100vh - 60px);
+  display: none; align-items: center; justify-content: center; padding: 40px 20px;
 }
+#screen-auth.active { display: flex; }
+
 .auth-card {
-  background: var(--card);
-  border-radius: var(--radius);
-  padding: 40px;
-  width: 100%;
-  max-width: 440px;
-  box-shadow: var(--shadow-lg);
-  border: 1px solid var(--border);
+  background: var(--bg2); border: 1px solid var(--border2);
+  border-radius: var(--r2); padding: 40px; width: 100%; max-width: 420px;
+  box-shadow: var(--sh2);
 }
-.auth-header { text-align: center; margin-bottom: 26px; }
-.auth-role-badge {
-  display: inline-block;
-  padding: 4px 14px;
-  border-radius: 30px;
-  font-size: .78rem;
-  font-weight: 700;
-  margin-bottom: 10px;
-}
-.auth-role-badge.trainer { background: var(--trainer-light); color: var(--trainer); }
-.auth-role-badge.trainee { background: var(--trainee-light); color: var(--trainee); }
-.auth-header h2 { font-size: 1.5rem; font-weight: 800; margin-bottom: 5px; }
-.auth-header p { color: var(--ink-soft); font-size: .88rem; }
-
-/* ── FORM ── */
-.form-group { margin-bottom: 16px; }
-.form-label {
-  display: block;
-  font-weight: 600;
-  font-size: .86rem;
-  margin-bottom: 6px;
-  color: var(--ink);
-}
-.form-input {
-  width: 100%;
-  padding: 11px 14px;
-  border: 1.5px solid var(--border);
-  border-radius: 10px;
-  font-family: 'Cairo', sans-serif;
-  font-size: .9rem;
-  background: var(--surface);
-  color: var(--ink);
-  transition: border-color .15s;
-  outline: none;
-}
-.form-input:focus { border-color: var(--trainer); background: #fff; }
-.form-input.trainee:focus { border-color: var(--trainee); }
-textarea.form-input { resize: vertical; min-height: 88px; }
-
-.auth-switch {
-  text-align: center;
-  margin-top: 18px;
-  font-size: .86rem;
-  color: var(--ink-soft);
-}
+.auth-head { text-align: center; margin-bottom: 28px; }
+.auth-head h2 { font-size: 1.5rem; font-weight: 900; margin: 10px 0 5px; }
+.auth-head p  { color: var(--ink2); font-size: .87rem; }
+.auth-switch  { text-align: center; margin-top: 18px; font-size: .85rem; color: var(--ink2); }
 .auth-switch button {
-  background: none;
-  border: none;
-  color: var(--trainer);
-  font-weight: 700;
-  cursor: pointer;
-  font-family: 'Cairo', sans-serif;
+  background: none; border: none; font-family: 'Cairo', sans-serif;
+  font-weight: 800; cursor: pointer; color: var(--violet2);
 }
+.auth-switch button.sky { color: var(--sky); }
 
-/* ── ALERTS ── */
-.alert {
-  border-radius: 9px;
-  padding: 10px 14px;
-  font-size: .86rem;
-  margin-bottom: 16px;
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-}
-.alert-error { background: var(--danger-light); color: var(--danger); border: 1px solid #fecdd3; }
-.alert-success { background: var(--success-light); color: var(--success); border: 1px solid #bbf7d0; }
-.alert-warning { background: #fffbeb; color: var(--warning); border: 1px solid #fed7aa; }
+/* ═══════════════════════════════════════════
+   DASHBOARD
+═══════════════════════════════════════════ */
+#screen-dash { display: none; }
+#screen-dash.active { display: block; }
 
-/* ── DASHBOARD ── */
-.dashboard { max-width: 960px; margin: 0 auto; padding: 36px 20px; }
-.dashboard-header { margin-bottom: 30px; }
-.dashboard-header h2 { font-size: 1.5rem; font-weight: 800; margin-bottom: 5px; }
-.dashboard-header p { color: var(--ink-soft); font-size: .92rem; }
+.dash-wrap { max-width: 980px; margin: 0 auto; padding: 36px 20px; }
 
-/* ── TABS ── */
+.dash-header { margin-bottom: 32px; }
+.dash-header h2 { font-size: 1.5rem; font-weight: 900; }
+.dash-header p  { color: var(--ink2); font-size: .9rem; margin-top: 4px; }
+
+/* tabs */
 .tabs {
-  display: flex;
-  gap: 4px;
-  margin-bottom: 24px;
-  background: var(--surface);
-  padding: 4px;
-  border-radius: 12px;
-  width: fit-content;
-  border: 1px solid var(--border);
+  display: flex; gap: 4px; margin-bottom: 26px;
+  background: var(--bg2); padding: 4px; border-radius: var(--r);
+  border: 1px solid var(--border); width: fit-content;
 }
 .tab {
-  padding: 8px 18px;
-  border-radius: 9px;
-  border: none;
-  font-family: 'Cairo', sans-serif;
-  font-weight: 600;
-  font-size: .86rem;
-  cursor: pointer;
+  padding: 8px 20px; border-radius: 9px; border: none;
+  font-family: 'Cairo', sans-serif; font-weight: 700; font-size: .85rem;
+  cursor: pointer; color: var(--ink2); background: transparent;
   transition: all .15s;
-  color: var(--ink-soft);
-  background: transparent;
 }
-.tab.active {
-  background: var(--card);
-  color: var(--trainer);
-  box-shadow: var(--shadow);
-}
+.tab.active { background: var(--surface); color: var(--ink); box-shadow: var(--sh); }
+.tab-pane { display: none; }
+.tab-pane.active { display: block; }
 
-/* ── ADD FORM ── */
-.add-form {
-  background: var(--card);
-  border: 1.5px dashed var(--border);
-  border-radius: var(--radius);
-  padding: 24px;
-  margin-bottom: 28px;
-}
-.add-form h3 { font-weight: 700; margin-bottom: 18px; }
-
-/* ── CARDS GRID ── */
+/* cards grid */
 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); gap: 16px; }
+
 .intern-card {
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 20px;
-  transition: all .2s;
-  position: relative;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--r2); padding: 22px;
+  transition: all .2s; display: flex; flex-direction: column; gap: 10px;
+  position: relative; overflow: hidden;
 }
 .intern-card::before {
-  content: '';
-  position: absolute;
-  top: 0; right: 0; left: 0;
-  height: 3px;
-  background: linear-gradient(90deg, var(--trainer), var(--trainee));
+  content: ''; position: absolute; top: 0; right: 0; left: 0; height: 2px;
+  background: linear-gradient(90deg, var(--violet), var(--sky));
 }
-.intern-card:hover { box-shadow: var(--shadow-lg); transform: translateY(-2px); }
-.intern-field {
-  display: inline-block;
-  background: var(--trainer-light);
-  color: var(--trainer);
-  font-size: .78rem;
-  font-weight: 700;
-  padding: 3px 10px;
-  border-radius: 20px;
-}
-.intern-card h4 { font-size: .97rem; font-weight: 700; }
-.intern-desc { font-size: .84rem; color: var(--ink-soft); line-height: 1.6; flex: 1; }
-.intern-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-size: .78rem;
-  color: var(--ink-faint);
-  padding-top: 8px;
-  border-top: 1px solid var(--border);
-  margin-top: auto;
+.intern-card:hover { border-color: var(--border2); box-shadow: 0 8px 32px rgba(0,0,0,.5); transform: translateY(-2px); }
+.card-title   { font-size: 1rem; font-weight: 800; }
+.card-company { font-size: .83rem; color: var(--ink2); }
+.card-desc    { font-size: .83rem; color: var(--ink2); line-height: 1.65; flex: 1; }
+.card-footer  {
+  display: flex; align-items: center; justify-content: space-between;
+  padding-top: 10px; border-top: 1px solid var(--border);
+  font-size: .76rem; color: var(--ink3); margin-top: auto;
 }
 
-/* ── APPLICANT ROW ── */
-.applicant-row {
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 14px 18px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+/* add form */
+.add-panel {
+  background: var(--bg2); border: 1.5px dashed var(--border2);
+  border-radius: var(--r2); padding: 28px; max-width: 560px;
 }
-.applicant-info { display: flex; flex-direction: column; gap: 2px; }
-.applicant-name { font-weight: 700; font-size: .95rem; }
-.applicant-meta { font-size: .8rem; color: var(--ink-soft); }
+.add-panel h3 { font-weight: 800; margin-bottom: 20px; color: var(--ink); }
 
-/* ── MODAL / OVERLAY ── */
+/* applicants */
+.app-list { display: flex; flex-direction: column; gap: 12px; }
+.app-row {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--r); padding: 16px 20px;
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  flex-wrap: wrap;
+}
+.app-name  { font-weight: 800; font-size: .95rem; margin-bottom: 3px; }
+.app-meta  { font-size: .79rem; color: var(--ink2); line-height: 1.7; }
+
+/* empty state */
+.empty { text-align: center; padding: 70px 20px; color: var(--ink2); }
+.empty-icon { font-size: 3rem; margin-bottom: 14px; }
+.empty h4   { font-size: 1rem; font-weight: 800; color: var(--ink); margin-bottom: 6px; }
+.empty p    { font-size: .85rem; line-height: 1.7; }
+
+/* ═══════════════════════════════════════════
+   MODAL / OVERLAY
+═══════════════════════════════════════════ */
 .overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 999;
-  padding: 20px;
-  backdrop-filter: blur(3px);
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,.65); backdrop-filter: blur(4px);
+  display: none; align-items: center; justify-content: center;
+  z-index: 500; padding: 20px;
 }
+.overlay.open { display: flex; }
 .modal {
-  background: var(--card);
-  border-radius: var(--radius);
-  padding: 32px;
-  width: 100%;
-  max-width: 420px;
-  box-shadow: var(--shadow-lg);
-  animation: pop .18s ease;
+  background: var(--bg2); border: 1px solid var(--border2);
+  border-radius: var(--r2); padding: 32px; width: 100%; max-width: 400px;
+  box-shadow: var(--sh2); animation: pop .18s ease;
 }
-@keyframes pop {
-  from { transform: scale(.94); opacity: 0; }
-  to   { transform: scale(1);   opacity: 1; }
+.modal.wide { max-width: 460px; }
+@keyframes pop { from { transform: scale(.93); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.modal-head {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 18px;
 }
-.modal-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 20px;
-}
-.modal-header h3 { font-size: 1.15rem; font-weight: 800; }
+.modal-head h3 { font-size: 1.1rem; font-weight: 900; }
 .modal-close {
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-size: 1.2rem;
-  color: var(--ink-soft);
-  line-height: 1;
-  padding: 4px;
-  border-radius: 6px;
+  background: none; border: none; color: var(--ink2);
+  font-size: 1.2rem; cursor: pointer; line-height: 1;
+  padding: 4px 8px; border-radius: 7px; transition: background .15s;
 }
 .modal-close:hover { background: var(--surface); color: var(--ink); }
+.modal-sub { color: var(--ink2); font-size: .85rem; line-height: 1.7; margin-bottom: 20px; }
 
+/* info rows inside modal */
 .info-row {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-  padding: 12px 0;
-  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 13px;
+  padding: 12px 0; border-bottom: 1px solid var(--border);
 }
 .info-row:last-of-type { border-bottom: none; }
-.info-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: 9px;
-  background: var(--trainer-light);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: .95rem;
-  flex-shrink: 0;
+.info-ico {
+  width: 36px; height: 36px; border-radius: 9px; flex-shrink: 0;
+  background: var(--violet-dim); display: flex; align-items: center;
+  justify-content: center; font-size: .95rem;
 }
-.info-label { font-size: .72rem; color: var(--ink-faint); margin-bottom: 2px; }
-.info-value { font-size: .9rem; font-weight: 600; }
+.info-lbl { font-size: .72rem; color: var(--ink3); margin-bottom: 1px; }
+.info-val { font-size: .9rem; font-weight: 700; }
 
-/* ── CONFIRM DIALOG ── */
-.confirm-modal { max-width: 360px; text-align: center; }
-.confirm-modal .confirm-icon { font-size: 2.5rem; margin-bottom: 12px; }
-.confirm-modal h3 { font-size: 1.1rem; font-weight: 800; margin-bottom: 8px; }
-.confirm-modal p { color: var(--ink-soft); font-size: .88rem; line-height: 1.6; margin-bottom: 24px; }
-.confirm-actions { display: flex; gap: 10px; }
-.confirm-actions .btn { flex: 1; justify-content: center; }
+/* confirm */
+.confirm-body { text-align: center; padding: 8px 0; }
+.confirm-body .ci { font-size: 2.4rem; margin-bottom: 12px; }
+.confirm-body h3  { font-size: 1.05rem; font-weight: 900; margin-bottom: 8px; }
+.confirm-body p   { color: var(--ink2); font-size: .85rem; line-height: 1.65; margin-bottom: 24px; }
+.confirm-btns     { display: flex; gap: 10px; }
+.confirm-btns .btn { flex: 1; }
 
-/* ── EMPTY STATE ── */
-.empty { text-align: center; padding: 60px 20px; color: var(--ink-soft); }
-.empty-icon { font-size: 2.8rem; margin-bottom: 12px; }
-.empty h4 { font-size: 1rem; font-weight: 700; margin-bottom: 6px; color: var(--ink); }
-.empty p { font-size: .86rem; line-height: 1.7; }
-
-/* ── BADGE ── */
-.applied-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  background: var(--success-light);
-  color: var(--success);
-  border: 1px solid #bbf7d0;
-  border-radius: 8px;
-  padding: 6px 12px;
-  font-size: .8rem;
-  font-weight: 700;
-  cursor: pointer;
-  font-family: 'Cairo', sans-serif;
-}
-.applied-badge:hover { background: #dcfce7; }
-
-/* ── SPINNER ── */
+/* ═══════════════════════════════════════════
+   SPINNER
+═══════════════════════════════════════════ */
 .spinner {
-  display: inline-block;
-  width: 17px;
-  height: 17px;
-  border: 2.5px solid rgba(255,255,255,.3);
-  border-top-color: #fff;
-  border-radius: 50%;
+  display: inline-block; width: 17px; height: 17px;
+  border: 2.5px solid rgba(255,255,255,.25);
+  border-top-color: #fff; border-radius: 50%;
   animation: spin .7s linear infinite;
 }
+.spinner.dark { border-color: rgba(0,0,0,.2); border-top-color: #0f172a; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* ── CONFIG NOTICE ── */
-.config-notice {
-  position: fixed;
-  inset: 0;
-  background: rgba(15,23,42,.9);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 9999;
-  padding: 20px;
-  backdrop-filter: blur(4px);
+/* ═══════════════════════════════════════════
+   TOAST
+═══════════════════════════════════════════ */
+#toast {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px);
+  background: var(--surface); border: 1px solid var(--border2);
+  color: var(--ink); border-radius: 30px;
+  padding: 10px 22px; font-size: .87rem; font-weight: 700;
+  box-shadow: var(--sh2); z-index: 9999;
+  transition: transform .3s cubic-bezier(.34,1.56,.64,1), opacity .3s;
+  opacity: 0; pointer-events: none;
+  display: flex; align-items: center; gap: 8px;
 }
-.config-box {
-  background: var(--card);
-  border-radius: var(--radius);
-  padding: 36px;
-  max-width: 460px;
-  width: 100%;
-  box-shadow: var(--shadow-lg);
-  text-align: center;
+#toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+/* ═══════════════════════════════════════════
+   LOADING SCREEN
+═══════════════════════════════════════════ */
+#screen-loading {
+  position: fixed; inset: 0; background: var(--bg);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 9000;
 }
-.config-box h2 { font-size: 1.3rem; font-weight: 800; margin-bottom: 10px; color: var(--danger); }
-.config-box p { color: var(--ink-soft); font-size: .88rem; line-height: 1.8; margin-bottom: 14px; }
-.config-box code {
-  display: block;
-  background: #f1f5f9;
-  border-radius: 8px;
-  padding: 10px 14px;
-  font-family: monospace;
-  font-size: .8rem;
-  text-align: left;
-  direction: ltr;
-  color: var(--ink);
-  border: 1px solid var(--border);
-  margin-bottom: 8px;
-  word-break: break-all;
+#screen-loading .logo {
+  font-size: 1.3rem; font-weight: 900; color: var(--violet2);
+  display: flex; align-items: center; gap: 10px;
+}
+#screen-loading .logo .dot {
+  width: 12px; height: 12px; background: var(--violet);
+  border-radius: 50%; animation: pulse 1.4s ease-in-out infinite;
 }
 
-@media (max-width: 600px) {
-  .auth-card { padding: 26px 18px; }
+/* ═══════════════════════════════════════════
+   RESPONSIVE
+═══════════════════════════════════════════ */
+@media (max-width: 580px) {
+  .auth-card { padding: 28px 18px; }
   .role-cards { flex-direction: column; align-items: center; }
-  .role-card { width: 100%; max-width: 300px; }
-  .modal { padding: 24px 18px; }
+  .role-card  { width: 100%; max-width: 290px; }
   .tabs { width: 100%; }
-  .tab { flex: 1; text-align: center; }
-  .intern-footer { flex-direction: column; align-items: flex-start; gap: 8px; }
+  .tab  { flex: 1; text-align: center; font-size: .8rem; padding: 8px 10px; }
+  .modal { padding: 24px 16px; }
+  .card-footer { flex-direction: column; align-items: flex-start; gap: 8px; }
 }
 </style>
 </head>
 <body>
-<div id="root"></div>
 
-<script type="text/babel">
-const { useState, useEffect, useCallback } = React;
+<!-- ─── LOADING ─── -->
+<div id="screen-loading">
+  <div class="logo"><div class="dot"></div>منصة التدريب</div>
+</div>
 
-// ─── SUPABASE CONFIG ──────────────────────────────────────────────────────────
+<!-- ─── NAV ─── -->
+<nav id="nav">
+  <div class="nav-logo" id="nav-logo">
+    <div class="logo-dot"></div>
+    منصة التدريب
+  </div>
+  <div class="nav-right" id="nav-right"></div>
+</nav>
+
+<!-- ─── LANDING ─── -->
+<div id="screen-landing" class="screen">
+  <div class="landing-eyebrow">🚀 ابدأ مسيرتك المهنية</div>
+  <h1 class="landing-h1">وصّل <span>طموحك</span><br/>بالفرصة الصح</h1>
+  <p class="landing-sub">منصة تجمع المتدربين الطموحين بالشركات والمدربين المحترفين — سجّل وابدأ في دقائق</p>
+  <div class="role-cards">
+    <div class="role-card" id="card-trainer">
+      <div class="role-icon">🏢</div>
+      <h3>مدرب / شركة</h3>
+      <p>أضف فرص تدريبية واستقبل طلبات المتدربين</p>
+      <div class="role-btns">
+        <button class="btn btn-violet btn-sm" onclick="App.goAuth('trainer','register')">سجّل كمدرب</button>
+        <button class="btn btn-ghost btn-sm" onclick="App.goAuth('trainer','login')">دخول</button>
+      </div>
+    </div>
+    <div class="role-card sky" id="card-trainee">
+      <div class="role-icon">🎓</div>
+      <h3>متدرب</h3>
+      <p>استعرض الفرص المتاحة وقدّم على ما يناسبك</p>
+      <div class="role-btns">
+        <button class="btn btn-sky btn-sm" onclick="App.goAuth('trainee','register')">سجّل كمتدرب</button>
+        <button class="btn btn-ghost btn-sm" onclick="App.goAuth('trainee','login')">دخول</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── AUTH ─── -->
+<div id="screen-auth" class="screen">
+  <div class="auth-card" id="auth-card">
+    <div class="auth-head">
+      <div id="auth-badge"></div>
+      <h2 id="auth-title"></h2>
+      <p id="auth-sub"></p>
+    </div>
+    <div class="alert alert-err" id="auth-err"></div>
+    <div id="auth-fields"></div>
+    <button class="btn btn-block" id="auth-submit-btn" onclick="Auth.submit()"></button>
+    <div class="auth-switch" id="auth-switch"></div>
+    <div class="auth-switch" style="margin-top:6px">
+      <button onclick="App.show('landing')" style="color:var(--ink3)">← الرئيسية</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── DASHBOARD ─── -->
+<div id="screen-dash" class="screen">
+  <div class="dash-wrap">
+    <div class="dash-header">
+      <h2 id="dash-title"></h2>
+      <p id="dash-sub"></p>
+    </div>
+    <div class="tabs" id="dash-tabs"></div>
+    <div id="dash-content"></div>
+  </div>
+</div>
+
+<!-- ─── OVERLAY: TRAINER INFO ─── -->
+<div class="overlay" id="overlay-trainer">
+  <div class="modal wide">
+    <div class="modal-head">
+      <h3>✅ تم التقديم!</h3>
+      <button class="modal-close" onclick="UI.closeOverlay('overlay-trainer')">✕</button>
+    </div>
+    <p class="modal-sub" id="trainer-modal-sub"></p>
+    <div id="trainer-modal-rows"></div>
+    <div style="margin-top:22px">
+      <button class="btn btn-sky btn-block" onclick="UI.closeOverlay('overlay-trainer')">حسناً، شكراً!</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── OVERLAY: CONFIRM DELETE ─── -->
+<div class="overlay" id="overlay-confirm">
+  <div class="modal">
+    <div class="confirm-body">
+      <div class="ci">🗑️</div>
+      <h3>تأكيد الحذف</h3>
+      <p id="confirm-msg"></p>
+      <div class="confirm-btns">
+        <button class="btn btn-ghost" onclick="UI.closeOverlay('overlay-confirm')">إلغاء</button>
+        <button class="btn btn-red" id="confirm-ok-btn">نعم، احذف</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── TOAST ─── -->
+<div id="toast"></div>
+
+<!-- ═══════════════════════════════════════════
+     SUPABASE — then bootstrap
+════════════════════════════════════════════ -->
+<script>
+// ─── CONFIG ──────────────────────────────────────────────────────────────────
 // ⚠️  غيّر القيمتين دول ببيانات مشروعك من:
 //     Supabase Dashboard → Settings → API
 // ─────────────────────────────────────────────────────────────────────────────
-const SUPABASE_URL      = 'https://mcqugbvpiyrmqsndtiwu.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1jcXVnYnZwaXlybXFzbmR0aXd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODExMDA5NDAsImV4cCI6MjA5NjY3Njk0MH0.aspyIGCB_nzvAV2Si_fRrswKP31w10hLDDjlA6K2dxE';
+const SUPA_URL = 'https://mcqugbvpiyrmqsndtiwu.supabase.co';
+const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1jcXVnYnZwaXlybXFzbmR0aXd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODExMDA5NDAsImV4cCI6MjA5NjY3Njk0MH0.aspyIGCB_nzvAV2Si_fRrswKP31w10hLDDjlA6K2dxE';
+</script>
 
-const CONFIG_MISSING = !SUPABASE_URL || !SUPABASE_ANON_KEY;
+<script
+  src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"
+  onload="bootstrap()"
+  onerror="showFatal('فشل تحميل Supabase — تأكد من اتصالك بالإنترنت وأعد المحاولة.')">
+</script>
 
-// نتأكد إن window.supabase اتحمل صح قبل ما نعمل client
-let supabase = null;
-if (!CONFIG_MISSING) {
-  const _sb = window.supabase ?? window.Supabase ?? window.SupabaseJs;
-  if (_sb && typeof _sb.createClient === 'function') {
-    supabase = _sb.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-  } else {
-    console.error('Supabase SDK لم يتحمل. تأكد من اتصالك بالإنترنت وأعد تحميل الصفحة.');
-  }
+<script>
+/* ═══════════════════════════════════════════════════════════════════════════
+   BOOTSTRAP — يشتغل بعد ما Supabase يتحمل
+═══════════════════════════════════════════════════════════════════════════ */
+function showFatal(msg) {
+  document.getElementById('screen-loading').innerHTML =
+    `<div style="text-align:center;padding:40px;max-width:400px">
+       <div style="font-size:2.5rem;margin-bottom:16px">❌</div>
+       <div style="font-size:1rem;font-weight:700;color:#f87171;margin-bottom:10px">خطأ في التحميل</div>
+       <div style="font-size:.87rem;color:#94a3b8;line-height:1.7;margin-bottom:20px">${msg}</div>
+       <button onclick="location.reload()" style="background:#8b5cf6;color:#fff;border:none;border-radius:10px;padding:10px 24px;font-family:Cairo,sans-serif;font-size:.9rem;font-weight:700;cursor:pointer">🔄 إعادة تحميل</button>
+     </div>`;
 }
 
-// ─── HELPERS ─────────────────────────────────────────────────────────────────
-const fmt = (d) =>
-  new Date(d).toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' });
-
-// ─── REUSABLE: CONFIRM DIALOG ─────────────────────────────────────────────────
-function ConfirmDialog({ icon = '⚠️', title, message, confirmLabel = 'تأكيد', confirmClass = 'btn-danger', onConfirm, onCancel }) {
-  return (
-    <div className="overlay" onClick={e => e.target.classList.contains('overlay') && onCancel()}>
-      <div className="modal confirm-modal">
-        <div className="confirm-icon">{icon}</div>
-        <h3>{title}</h3>
-        <p>{message}</p>
-        <div className="confirm-actions">
-          <button className="btn btn-ghost" onClick={onCancel}>إلغاء</button>
-          <button className={`btn ${confirmClass}`} onClick={onConfirm}>{confirmLabel}</button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─── REUSABLE: TRAINER INFO MODAL ─────────────────────────────────────────────
-function TrainerModal({ info, field, onClose }) {
-  return (
-    <div className="overlay" onClick={e => e.target.classList.contains('overlay') && onClose()}>
-      <div className="modal">
-        <div className="modal-header">
-          <h3>✅ تم التقديم بنجاح!</h3>
-          <button className="modal-close" onClick={onClose}>✕</button>
-        </div>
-        <p style={{ color: 'var(--ink-soft)', fontSize: '.86rem', marginBottom: 20, lineHeight: 1.7 }}>
-          تقدمت على تدريب في مجال <strong>{field}</strong> — إليك بيانات المدرب للتواصل:
-        </p>
-
-        <div className="info-row">
-          <div className="info-icon">🏢</div>
-          <div>
-            <div className="info-label">الشركة / المدرب</div>
-            <div className="info-value">{info.company_name || info.name}</div>
-          </div>
-        </div>
-        <div className="info-row">
-          <div className="info-icon">📧</div>
-          <div>
-            <div className="info-label">الإيميل</div>
-            <div className="info-value" style={{ direction: 'ltr' }}>{info.email}</div>
-          </div>
-        </div>
-        <div className="info-row">
-          <div className="info-icon">📞</div>
-          <div>
-            <div className="info-label">التليفون</div>
-            <div className="info-value" style={{ direction: 'ltr' }}>{info.phone}</div>
-          </div>
-        </div>
-
-        <div style={{ marginTop: 24 }}>
-          <button className="btn btn-primary btn-block" onClick={onClose}>حسناً، شكراً!</button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─── CONFIG NOTICE ────────────────────────────────────────────────────────────
-const SDK_MISSING = !CONFIG_MISSING && !supabase;
-
-function ConfigNotice() {
-  if (SDK_MISSING) {
-    return (
-      <div className="config-notice">
-        <div className="config-box">
-          <h2>❌ خطأ في التحميل</h2>
-          <p>لم يتحمل Supabase SDK بشكل صحيح.</p>
-          <p>تأكد من <strong>اتصالك بالإنترنت</strong> ثم <strong>أعد تحميل الصفحة</strong>.</p>
-        </div>
-      </div>
-    );
-  }
-  return (
-    <div className="config-notice">
-      <div className="config-box">
-        <h2>⚠️ إعداد مطلوب</h2>
-        <p>يرجى إدخال بيانات Supabase الخاصة بك في أعلى الكود</p>
-        <code>SUPABASE_URL = 'https://xxxx.supabase.co'</code>
-        <code>SUPABASE_ANON_KEY = 'eyJ...'</code>
-        <p>تلاقيهم في: <strong>Supabase Dashboard → Settings → API</strong></p>
-      </div>
-    </div>
-  );
-}
-
-// ─── APP ──────────────────────────────────────────────────────────────────────
-function App() {
-  const [page, setPage]       = useState('landing');
-  const [role, setRole]       = useState(null);
-  const [authMode, setAuthMode] = useState('login');
-  const [user, setUser]       = useState(null);
-  const [profile, setProfile] = useState(null);
-
-  useEffect(() => {
-    if (CONFIG_MISSING || !supabase) return;
-
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) loadUser(session.user);
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session) loadUser(session.user);
-      else { setUser(null); setProfile(null); setPage('landing'); }
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  async function loadUser(u) {
-    setUser(u);
-    const { data } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', u.id)
-      .single();
-    if (data) { setProfile(data); setPage('dashboard'); }
+function bootstrap() {
+  // التحقق إن window.supabase موجود فعلاً
+  const SDK = window.supabase;
+  if (!SDK || typeof SDK.createClient !== 'function') {
+    showFatal('تعذّر الوصول إلى Supabase SDK. يرجى إعادة تحميل الصفحة.');
+    return;
   }
 
-  async function handleLogout() {
-    await supabase.auth.signOut();
-    setRole(null);
-    setPage('landing');
-  }
+  // إنشاء الـ client
+  const db = SDK.createClient(SUPA_URL, SUPA_KEY);
 
-  return (
-    <div>
-      {(CONFIG_MISSING || SDK_MISSING) && <ConfigNotice />}
+  /* ── HELPERS ─────────────────────────────────────────────────────────── */
+  const $ = id => document.getElementById(id);
+  const fmt = d => new Date(d).toLocaleDateString('ar-EG', { year:'numeric', month:'short', day:'numeric' });
 
-      <nav className="nav">
-        <div className="nav-logo" onClick={() => !user && setPage('landing')}>
-          <span>🎓</span> منصة التدريب
-        </div>
-        <div className="nav-actions">
-          {user && profile && <span className="nav-user">👋 {profile.name}</span>}
-          {user
-            ? <button className="btn btn-ghost btn-sm" onClick={handleLogout}>تسجيل خروج</button>
-            : page !== 'landing' && (
-                <button className="btn btn-ghost btn-sm" onClick={() => setPage('landing')}>← الرئيسية</button>
-              )
-          }
-        </div>
-      </nav>
+  /* ── TOAST ───────────────────────────────────────────────────────────── */
+  const UI = {
+    toast(msg, icon = '✅') {
+      const t = $('toast');
+      t.innerHTML = `<span>${icon}</span> ${msg}`;
+      t.classList.add('show');
+      clearTimeout(UI._tt);
+      UI._tt = setTimeout(() => t.classList.remove('show'), 3000);
+    },
+    openOverlay(id) { $(id).classList.add('open'); },
+    closeOverlay(id) { $(id).classList.remove('open'); },
+    setHTML(id, html) { $(id).innerHTML = html; },
+    show(id, val) { $(id).style.display = val || 'block'; },
+    hide(id) { $(id).style.display = 'none'; },
+    showAlert(id, msg) { const el=$(id); el.textContent=msg; el.classList.add('show'); },
+    hideAlert(id) { $(id).classList.remove('show'); },
+  };
 
-      {page === 'landing' && (
-        <Landing
-          onSelect={(r) => { setRole(r); setAuthMode('register'); setPage('auth'); }}
-          onLogin={(r)  => { setRole(r); setAuthMode('login');    setPage('auth'); }}
-        />
-      )}
-      {page === 'auth' && (
-        <AuthPage
-          role={role}
-          mode={authMode}
-          setMode={setAuthMode}
-          onBack={() => setPage('landing')}
-          onSuccess={loadUser}
-        />
-      )}
-      {page === 'dashboard' && profile && (
-        profile.role === 'trainer'
-          ? <TrainerDashboard profile={profile} />
-          : <TraineeDashboard profile={profile} />
-      )}
-    </div>
-  );
-}
+  /* ── APP STATE & NAVIGATION ──────────────────────────────────────────── */
+  const App = {
+    user: null, profile: null,
+    role: null, authMode: null,
 
-// ─── LANDING ──────────────────────────────────────────────────────────────────
-function Landing({ onSelect, onLogin }) {
-  return (
-    <div className="landing">
-      <div className="landing-badge">🚀 ابدأ رحلتك المهنية</div>
-      <h1>ابحث عن <em>تدريبك المثالي</em><br/>أو درّب الجيل القادم</h1>
-      <p>منصة تربط المتدربين الطموحين بالشركات والمدربين المحترفين في مختلف المجالات</p>
+    show(name) {
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      $('screen-' + name).classList.add('active');
+    },
 
-      <div className="role-cards">
-        <div className="role-card trainer">
-          <div className="role-icon">🏢</div>
-          <h3>مدرب / شركة</h3>
-          <p>أضف فرص تدريبية وتواصل مع المتدربين المناسبين</p>
-          <div className="role-btns">
-            <button className="btn btn-primary btn-sm btn-block" onClick={() => onSelect('trainer')}>
-              سجّل كمدرب
-            </button>
-            <button className="btn btn-ghost btn-sm btn-block" onClick={() => onLogin('trainer')}>
-              دخول
-            </button>
-          </div>
-        </div>
+    goAuth(role, mode) {
+      App.role = role; App.authMode = mode;
+      Auth.render(role, mode);
+      App.show('auth');
+    },
 
-        <div className="role-card trainee">
-          <div className="role-icon">👨‍💻</div>
-          <h3>متدرب</h3>
-          <p>استعرض فرص التدريب وقدّم على ما يناسب مهاراتك</p>
-          <div className="role-btns">
-            <button className="btn btn-blue btn-sm btn-block" onClick={() => onSelect('trainee')}>
-              سجّل كمتدرب
-            </button>
-            <button className="btn btn-ghost btn-sm btn-block" onClick={() => onLogin('trainee')}>
-              دخول
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
+    async init() {
+      const { data: { session } } = await db.auth.getSession();
+      if (session) await App.loadUser(session.user);
+      else App.show('landing');
+      $('screen-loading').style.display = 'none';
 
-// ─── AUTH PAGE ────────────────────────────────────────────────────────────────
-function AuthPage({ role, mode, setMode, onBack, onSuccess }) {
-  const [form, setForm]       = useState({ name: '', phone: '', email: '', password: '', company_name: '' });
-  const [loading, setLoading] = useState(false);
-  const [error, setError]     = useState('');
-  const isTrainer = role === 'trainer';
-
-  const setField = (k, v) => setForm(f => ({ ...f, [k]: v }));
-
-  async function handleSubmit() {
-    if (!supabase) { setError('يرجى إعداد بيانات Supabase أولاً'); return; }
-    setError('');
-    setLoading(true);
-
-    if (mode === 'register') {
-      const { data, error: err } = await supabase.auth.signUp({
-        email: form.email,
-        password: form.password,
-        options: {
-          data: {
-            name: form.name,
-            phone: form.phone,
-            role,
-            company_name: form.company_name || null
-          }
-        }
+      db.auth.onAuthStateChange(async (_e, session) => {
+        if (session) { await App.loadUser(session.user); }
+        else { App.user = null; App.profile = null; App.renderNav(); App.show('landing'); }
       });
-      if (err) { setError(err.message); setLoading(false); return; }
-      if (data.user) onSuccess(data.user);
-    } else {
-      const { data, error: err } = await supabase.auth.signInWithPassword({
-        email: form.email,
-        password: form.password
-      });
-      if (err) { setError('الإيميل أو الباسورد غلط'); setLoading(false); return; }
-      if (data.user) onSuccess(data.user);
-    }
+    },
 
-    setLoading(false);
-  }
+    async loadUser(u) {
+      App.user = u;
+      const { data } = await db.from('profiles').select('*').eq('id', u.id).single();
+      if (data) {
+        App.profile = data;
+        App.renderNav();
+        Dash.render(data);
+        App.show('dash');
+      }
+    },
 
-  const inputClass = `form-input${isTrainer ? '' : ' trainee'}`;
+    renderNav() {
+      const p = App.profile;
+      if (p) {
+        UI.setHTML('nav-right', `
+          <span class="nav-name">👋 ${p.name}</span>
+          <button class="btn btn-ghost btn-sm" onclick="App.logout()">خروج</button>
+        `);
+      } else {
+        UI.setHTML('nav-right', '');
+      }
+    },
 
-  return (
-    <div className="auth-wrap">
-      <div className="auth-card">
-        <div className="auth-header">
-          <span className={`auth-role-badge ${role}`}>
-            {isTrainer ? '🏢 مدرب / شركة' : '👨‍💻 متدرب'}
-          </span>
-          <h2>{mode === 'register' ? 'إنشاء حساب' : 'تسجيل الدخول'}</h2>
-          <p>{mode === 'register' ? 'أدخل بياناتك لإنشاء حسابك' : 'أهلاً بعودتك!'}</p>
-        </div>
+    async logout() {
+      await db.auth.signOut();
+    },
+  };
 
-        {error && <div className="alert alert-error">⚠️ {error}</div>}
+  // expose globally for inline onclick handlers
+  window.App = App;
 
-        {mode === 'register' && (
-          <>
-            <div className="form-group">
-              <label className="form-label">
-                {isTrainer ? 'الاسم / اسم المسؤول' : 'الاسم بالكامل'}
-              </label>
-              <input
-                className={inputClass}
-                placeholder="اكتب اسمك هنا"
-                value={form.name}
-                onChange={e => setField('name', e.target.value)}
-              />
-            </div>
-            {isTrainer && (
-              <div className="form-group">
-                <label className="form-label">اسم الشركة</label>
-                <input
-                  className={inputClass}
-                  placeholder="شركة ..."
-                  value={form.company_name}
-                  onChange={e => setField('company_name', e.target.value)}
-                />
-              </div>
-            )}
-            <div className="form-group">
-              <label className="form-label">رقم التليفون</label>
-              <input
-                className={inputClass}
-                type="tel"
-                placeholder="01xxxxxxxxx"
-                value={form.phone}
-                onChange={e => setField('phone', e.target.value)}
-              />
-            </div>
-          </>
-        )}
+  /* ── AUTH ────────────────────────────────────────────────────────────── */
+  const Auth = {
+    render(role, mode) {
+      const isTrainer = role === 'trainer';
+      const isReg     = mode === 'register';
+      const color     = isTrainer ? 'violet' : 'sky';
 
-        <div className="form-group">
-          <label className="form-label">الإيميل</label>
-          <input
-            className={inputClass}
-            type="email"
-            placeholder="example@email.com"
-            value={form.email}
-            onChange={e => setField('email', e.target.value)}
-          />
-        </div>
+      UI.setHTML('auth-badge', `<div class="chip chip-${color}" style="margin-bottom:10px">${isTrainer ? '🏢 مدرب' : '🎓 متدرب'}</div>`);
+      UI.setHTML('auth-title', isReg ? 'إنشاء حساب' : 'تسجيل الدخول');
+      UI.setHTML('auth-sub', isReg ? 'أدخل بياناتك لإنشاء حسابك' : 'أهلاً بعودتك!');
 
-        <div className="form-group" style={{ marginBottom: 22 }}>
-          <label className="form-label">الباسورد</label>
-          <input
-            className={inputClass}
-            type="password"
-            placeholder="••••••••"
-            value={form.password}
-            onChange={e => setField('password', e.target.value)}
-          />
-        </div>
+      // fields
+      let fields = '';
+      if (isReg) {
+        fields += Auth.field('name', isTrainer ? 'اسم المدرب / المسؤول' : 'الاسم بالكامل', 'text', 'اكتب اسمك', color);
+        if (isTrainer) fields += Auth.field('company', 'اسم الشركة (اختياري)', 'text', 'شركة ...', color);
+        fields += Auth.field('phone', 'رقم الهاتف', 'tel', '01xxxxxxxxx', color);
+      }
+      fields += Auth.field('email', 'الإيميل', 'email', 'example@email.com', color);
+      fields += Auth.field('password', 'الباسورد', 'password', '••••••••', color);
+      UI.setHTML('auth-fields', fields);
 
-        <button
-          className={`btn ${isTrainer ? 'btn-primary' : 'btn-blue'} btn-block`}
-          disabled={loading || !form.email || !form.password}
-          onClick={handleSubmit}
-        >
-          {loading
-            ? <span className="spinner"/>
-            : mode === 'register' ? 'إنشاء الحساب' : 'تسجيل الدخول'
-          }
-        </button>
+      // submit button
+      const btn = $('auth-submit-btn');
+      btn.className = `btn btn-${color} btn-block`;
+      btn.textContent = isReg ? 'إنشاء الحساب' : 'تسجيل الدخول';
 
-        <div className="auth-switch">
-          {mode === 'register'
-            ? <>عندك حساب؟ <button onClick={() => setMode('login')}>سجّل دخول</button></>
-            : <>مش عندك حساب؟ <button onClick={() => setMode('register')}>أنشئ حساب</button></>
-          }
-        </div>
-        <div className="auth-switch" style={{ marginTop: 8 }}>
-          <button onClick={onBack} style={{ color: 'var(--ink-soft)' }}>← رجوع للرئيسية</button>
-        </div>
-      </div>
-    </div>
-  );
-}
+      // switch
+      UI.setHTML('auth-switch', isReg
+        ? `عندك حساب؟ <button class="${color}" onclick="App.goAuth('${role}','login')">سجّل دخول</button>`
+        : `مش عندك حساب؟ <button class="${color}" onclick="App.goAuth('${role}','register')">أنشئ حساب</button>`
+      );
 
-// ─── TRAINER DASHBOARD ────────────────────────────────────────────────────────
-function TrainerDashboard({ profile }) {
-  const [internships, setInternships] = useState([]);
-  const [applications, setApplications] = useState([]);
-  const [tab, setTab]         = useState('mine');
-  const [form, setForm]       = useState({ field: '', description: '' });
-  const [loading, setLoading] = useState(false);
-  const [fetching, setFetching] = useState(true);
-  const [msg, setMsg]         = useState('');
-  const [deleteTarget, setDeleteTarget] = useState(null);
+      UI.hideAlert('auth-err');
+    },
 
-  const load = useCallback(async () => {
-    setFetching(true);
-    const { data: interns } = await supabase
-      .from('internships')
-      .select('*')
-      .eq('trainer_id', profile.id)
-      .order('created_at', { ascending: false });
+    field(id, label, type, ph, color) {
+      return `<div class="field ${color}">
+        <label>${label}</label>
+        <input id="f-${id}" type="${type}" placeholder="${ph}" />
+      </div>`;
+    },
 
-    setInternships(interns || []);
-    setFetching(false);
-  }, [profile.id]);
+    val(id) { return ($('f-' + id)?.value || '').trim(); },
 
-  const loadApplications = useCallback(async () => {
-    if (!internships.length) return;
-    const ids = internships.map(i => i.id);
-    const { data } = await supabase
-      .from('applications')
-      .select('*, profiles!trainee_id(id, name, phone, email)')
-      .in('internship_id', ids)
-      .order('created_at', { ascending: false });
-    setApplications(data || []);
-  }, [internships]);
+    async submit() {
+      UI.hideAlert('auth-err');
+      const email    = Auth.val('email');
+      const password = Auth.val('password');
+      if (!email || !password) { UI.showAlert('auth-err', 'يرجى إدخال الإيميل والباسورد'); return; }
 
-  useEffect(() => { load(); }, [load]);
-  useEffect(() => { if (tab === 'applicants') loadApplications(); }, [tab, loadApplications]);
+      const btn = $('auth-submit-btn');
+      btn.innerHTML = '<span class="spinner"></span>';
+      btn.disabled = true;
 
-  async function handleAdd() {
-    if (!form.field.trim()) return;
-    setLoading(true);
-    const { error } = await supabase.from('internships').insert({
-      trainer_id: profile.id,
-      field: form.field,
-      description: form.description
-    });
-    setLoading(false);
-    if (!error) {
-      setMsg('تمت الإضافة بنجاح ✅');
-      setForm({ field: '', description: '' });
-      load();
-      setTab('mine');
-      setTimeout(() => setMsg(''), 3000);
-    }
-  }
-
-  async function confirmDelete() {
-    await supabase.from('internships').delete().eq('id', deleteTarget);
-    setDeleteTarget(null);
-    load();
-  }
-
-  // internship name helper for the confirm dialog
-  const deleteTargetName = deleteTarget
-    ? (internships.find(i => i.id === deleteTarget)?.field || 'هذا التدريب')
-    : '';
-
-  return (
-    <div className="dashboard">
-      <div className="dashboard-header">
-        <h2>🏢 لوحة تحكم المدرب</h2>
-        <p>أهلاً {profile.name} — تقدر تضيف وتدير فرص التدريب بتاعتك من هنا</p>
-      </div>
-
-      <div className="tabs">
-        <button className={`tab ${tab === 'mine' ? 'active' : ''}`} onClick={() => setTab('mine')}>
-          📋 تدريباتي ({internships.length})
-        </button>
-        <button className={`tab ${tab === 'applicants' ? 'active' : ''}`} onClick={() => setTab('applicants')}>
-          👥 المتقدمون
-        </button>
-        <button className={`tab ${tab === 'add' ? 'active' : ''}`} onClick={() => setTab('add')}>
-          ➕ أضف تدريب
-        </button>
-      </div>
-
-      {msg && <div className="alert alert-success">{msg}</div>}
-
-      {/* ── ADD TAB ── */}
-      {tab === 'add' && (
-        <div className="add-form">
-          <h3>➕ إضافة فرصة تدريب جديدة</h3>
-          <div className="form-group">
-            <label className="form-label">المجال</label>
-            <input
-              className="form-input"
-              placeholder="مثال: تطوير ويب، تسويق رقمي، تصميم جرافيك..."
-              value={form.field}
-              onChange={e => setForm(f => ({ ...f, field: e.target.value }))}
-            />
-          </div>
-          <div className="form-group">
-            <label className="form-label">وصف التدريب (اختياري)</label>
-            <textarea
-              className="form-input"
-              placeholder="اكتب تفاصيل التدريب، المدة، المتطلبات..."
-              value={form.description}
-              onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-            />
-          </div>
-          <button
-            className="btn btn-primary"
-            disabled={loading || !form.field.trim()}
-            onClick={handleAdd}
-          >
-            {loading ? <span className="spinner"/> : 'إضافة التدريب'}
-          </button>
-        </div>
-      )}
-
-      {/* ── MINE TAB ── */}
-      {tab === 'mine' && (
-        fetching
-          ? <Loading />
-          : internships.length === 0
-            ? <div className="empty">
-                <div className="empty-icon">📭</div>
-                <h4>لا يوجد تدريبات بعد</h4>
-                <p>اضغط على "أضف تدريب" لنشر أول فرصة تدريبية</p>
-              </div>
-            : <div className="grid">
-                {internships.map(i => (
-                  <div key={i.id} className="intern-card">
-                    <span className="intern-field">{i.field}</span>
-                    <h4>{profile.company_name || profile.name}</h4>
-                    {i.description && <p className="intern-desc">{i.description}</p>}
-                    <div className="intern-footer">
-                      <span>{fmt(i.created_at)}</span>
-                      <button
-                        className="btn btn-outline-danger btn-sm"
-                        onClick={() => setDeleteTarget(i.id)}
-                      >
-                        🗑️ حذف
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-      )}
-
-      {/* ── APPLICANTS TAB ── */}
-      {tab === 'applicants' && (
-        fetching
-          ? <Loading />
-          : applications.length === 0
-            ? <div className="empty">
-                <div className="empty-icon">👥</div>
-                <h4>لا يوجد متقدمون بعد</h4>
-                <p>لما يتقدم حد على تدريباتك هتلاقيه هنا</p>
-              </div>
-            : <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {applications.map(app => (
-                  <div key={app.id} className="applicant-row">
-                    <div className="applicant-info">
-                      <span className="applicant-name">
-                        {app.profiles?.name || '—'}
-                      </span>
-                      <span className="applicant-meta">
-                        📧 {app.profiles?.email} &nbsp;·&nbsp; 📞 {app.profiles?.phone}
-                      </span>
-                      <span className="applicant-meta" style={{ marginTop: 2 }}>
-                        تقدم بتاريخ {fmt(app.created_at)}
-                      </span>
-                    </div>
-                    <span className="intern-field" style={{ flexShrink: 0 }}>
-                      {internships.find(i => i.id === app.internship_id)?.field || '—'}
-                    </span>
-                  </div>
-                ))}
-              </div>
-      )}
-
-      {/* ── DELETE CONFIRM DIALOG ── */}
-      {deleteTarget && (
-        <ConfirmDialog
-          icon="🗑️"
-          title="تأكيد الحذف"
-          message={`هتحذف تدريب "${deleteTargetName}"؟ الإجراء ده مش هيتراجع.`}
-          confirmLabel="نعم، احذف"
-          confirmClass="btn-danger"
-          onConfirm={confirmDelete}
-          onCancel={() => setDeleteTarget(null)}
-        />
-      )}
-    </div>
-  );
-}
-
-// ─── TRAINEE DASHBOARD ────────────────────────────────────────────────────────
-function TraineeDashboard({ profile }) {
-  const [internships, setInternships] = useState([]);
-  const [applied, setApplied]         = useState(new Set());
-  const [selected, setSelected]       = useState(null);
-  const [trainerInfo, setTrainerInfo] = useState(null);
-  const [loading, setLoading]         = useState(false);
-  const [fetching, setFetching]       = useState(true);
-  const [tab, setTab]                 = useState('all');
-
-  const loadAll = useCallback(async () => {
-    setFetching(true);
-
-    const { data: interns } = await supabase
-      .from('internships')
-      .select('*, profiles!trainer_id(id, name, company_name, phone, email)')
-      .order('created_at', { ascending: false });
-
-    const { data: apps } = await supabase
-      .from('applications')
-      .select('internship_id')
-      .eq('trainee_id', profile.id);
-
-    setInternships(interns || []);
-    setApplied(new Set((apps || []).map(a => a.internship_id)));
-    setFetching(false);
-  }, [profile.id]);
-
-  useEffect(() => { loadAll(); }, [loadAll]);
-
-  async function handleApply(internship) {
-    setLoading(internship.id);
-    const { error } = await supabase.from('applications').insert({
-      trainee_id: profile.id,
-      internship_id: internship.id
-    });
-    if (!error) {
-      setApplied(prev => new Set([...prev, internship.id]));
-      setTrainerInfo(internship.profiles);
-      setSelected(internship);
-    }
-    setLoading(false);
-  }
-
-  const displayList = tab === 'all' ? internships : internships.filter(i => applied.has(i.id));
-
-  return (
-    <div className="dashboard">
-      <div className="dashboard-header">
-        <h2>👨‍💻 استعرض فرص التدريب</h2>
-        <p>أهلاً {profile.name} — ابحث عن تدريب يناسبك وقدّم في ثانية</p>
-      </div>
-
-      <div className="tabs">
-        <button className={`tab ${tab === 'all' ? 'active' : ''}`} onClick={() => setTab('all')}>
-          🔍 كل الفرص ({internships.length})
-        </button>
-        <button className={`tab ${tab === 'mine' ? 'active' : ''}`} onClick={() => setTab('mine')}>
-          ✅ تقديماتي ({applied.size})
-        </button>
-      </div>
-
-      {fetching
-        ? <Loading />
-        : displayList.length === 0
-          ? <div className="empty">
-              <div className="empty-icon">{tab === 'all' ? '📭' : '📋'}</div>
-              <h4>{tab === 'all' ? 'لا توجد فرص تدريب حالياً' : 'لم تتقدم على أي تدريب بعد'}</h4>
-              <p>{tab === 'all'
-                ? 'لم يضف أي مدرب فرص تدريب بعد، تحقق لاحقاً'
-                : 'استعرض الفرص المتاحة وابدأ التقديم'
-              }</p>
-            </div>
-          : <div className="grid">
-              {displayList.map(i => (
-                <div key={i.id} className="intern-card">
-                  <span className="intern-field">{i.field}</span>
-                  <h4>{i.profiles?.company_name || i.profiles?.name || '—'}</h4>
-                  {i.description && <p className="intern-desc">{i.description}</p>}
-                  <div className="intern-footer">
-                    <span>{fmt(i.created_at)}</span>
-                    {applied.has(i.id)
-                      ? <button
-                          className="applied-badge"
-                          onClick={() => { setSelected(i); setTrainerInfo(i.profiles); }}
-                        >
-                          ✅ تقدمت — بيانات المدرب
-                        </button>
-                      : <button
-                          className="btn btn-blue btn-sm"
-                          disabled={loading === i.id}
-                          onClick={() => handleApply(i)}
-                        >
-                          {loading === i.id ? <span className="spinner"/> : '📨 قدّم الآن'}
-                        </button>
-                    }
-                  </div>
-                </div>
-              ))}
-            </div>
+      if (App.authMode === 'register') {
+        const { data, error } = await db.auth.signUp({
+          email, password,
+          options: { data: {
+            name:         Auth.val('name'),
+            phone:        Auth.val('phone'),
+            role:         App.role,
+            company_name: Auth.val('company') || null,
+          }}
+        });
+        if (error) { UI.showAlert('auth-err', error.message); }
+        else if (data.user) await App.loadUser(data.user);
+      } else {
+        const { data, error } = await db.auth.signInWithPassword({ email, password });
+        if (error) { UI.showAlert('auth-err', 'الإيميل أو الباسورد غلط'); }
+        else if (data.user) await App.loadUser(data.user);
       }
 
-      {selected && trainerInfo && (
-        <TrainerModal
-          info={trainerInfo}
-          field={selected.field}
-          onClose={() => { setSelected(null); setTrainerInfo(null); }}
-        />
-      )}
-    </div>
-  );
-}
+      btn.disabled = false;
+      Auth.render(App.role, App.authMode); // reset button text
+    },
+  };
 
-// ─── LOADING STATE ────────────────────────────────────────────────────────────
-function Loading() {
-  return (
-    <div className="empty">
-      <div className="empty-icon">⏳</div>
-      <h4>جاري التحميل...</h4>
-    </div>
-  );
-}
+  window.Auth = Auth;
 
-// ─── RENDER ───────────────────────────────────────────────────────────────────
-ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  /* ── DASHBOARD ───────────────────────────────────────────────────────── */
+  const Dash = {
+    render(profile) {
+      $('dash-title').textContent = profile.role === 'trainer' ? '🏢 لوحة المدرب' : '🎓 فرص التدريب';
+      $('dash-sub').textContent   = `أهلاً ${profile.name}`;
+
+      if (profile.role === 'trainer') TrainerDash.init(profile);
+      else TraineeDash.init(profile);
+    },
+  };
+
+  /* ── TRAINER DASHBOARD ───────────────────────────────────────────────── */
+  const TrainerDash = {
+    profile: null,
+    internships: [],
+    applications: [],
+
+    async init(profile) {
+      TrainerDash.profile = profile;
+      UI.setHTML('dash-tabs', `
+        <button class="tab active" data-tab="mine" onclick="TrainerDash.switchTab('mine',this)">📋 تدريباتي</button>
+        <button class="tab" data-tab="apps"  onclick="TrainerDash.switchTab('apps',this)">👥 المتقدمون</button>
+        <button class="tab" data-tab="add"   onclick="TrainerDash.switchTab('add',this)">➕ أضف تدريب</button>
+      `);
+      await TrainerDash.loadInternships();
+      TrainerDash.renderMine();
+    },
+
+    switchTab(name, el) {
+      document.querySelectorAll('#dash-tabs .tab').forEach(t => t.classList.remove('active'));
+      el.classList.add('active');
+      if (name === 'mine') TrainerDash.renderMine();
+      if (name === 'apps') TrainerDash.renderApps();
+      if (name === 'add')  TrainerDash.renderAdd();
+    },
+
+    async loadInternships() {
+      const { data } = await db.from('internships')
+        .select('*').eq('trainer_id', TrainerDash.profile.id)
+        .order('created_at', { ascending: false });
+      TrainerDash.internships = data || [];
+    },
+
+    async loadApplications() {
+      if (!TrainerDash.internships.length) { TrainerDash.applications = []; return; }
+      const ids = TrainerDash.internships.map(i => i.id);
+      const { data } = await db.from('applications')
+        .select('*, profiles!trainee_id(id, name, phone, email)')
+        .in('internship_id', ids)
+        .order('created_at', { ascending: false });
+      TrainerDash.applications = data || [];
+    },
+
+    renderMine() {
+      const list = TrainerDash.internships;
+      const p    = TrainerDash.profile;
+      if (!list.length) {
+        UI.setHTML('dash-content', `<div class="empty"><div class="empty-icon">📭</div><h4>لا يوجد تدريبات بعد</h4><p>اضغط "أضف تدريب" لنشر أول فرصة</p></div>`);
+        return;
+      }
+      const cards = list.map(i => `
+        <div class="intern-card">
+          <span class="chip chip-violet">${i.field}</span>
+          <div class="card-title">${p.company_name || p.name}</div>
+          ${i.description ? `<div class="card-desc">${i.description}</div>` : ''}
+          <div class="card-footer">
+            <span>${fmt(i.created_at)}</span>
+            <button class="btn btn-red btn-sm" onclick="TrainerDash.confirmDelete('${i.id}','${i.field.replace(/'/g,"\\'")}')">🗑️ حذف</button>
+          </div>
+        </div>`).join('');
+      UI.setHTML('dash-content', `<div class="grid">${cards}</div>`);
+    },
+
+    async renderApps() {
+      UI.setHTML('dash-content', `<div class="empty"><div class="empty-icon" style="font-size:1.5rem">⏳</div><h4>جاري التحميل...</h4></div>`);
+      await TrainerDash.loadApplications();
+      const list = TrainerDash.applications;
+      if (!list.length) {
+        UI.setHTML('dash-content', `<div class="empty"><div class="empty-icon">👥</div><h4>لا يوجد متقدمون بعد</h4><p>لما حد يتقدم على تدريباتك هتلاقيه هنا</p></div>`);
+        return;
+      }
+      const fieldMap = {};
+      TrainerDash.internships.forEach(i => { fieldMap[i.id] = i.field; });
+      const rows = list.map(a => `
+        <div class="app-row">
+          <div>
+            <div class="app-name">${a.profiles?.name || '—'}</div>
+            <div class="app-meta">📧 ${a.profiles?.email || '—'} &nbsp;·&nbsp; 📞 ${a.profiles?.phone || '—'}</div>
+            <div class="app-meta" style="margin-top:2px">تقدّم ${fmt(a.created_at)}</div>
+          </div>
+          <span class="chip chip-violet">${fieldMap[a.internship_id] || '—'}</span>
+        </div>`).join('');
+      UI.setHTML('dash-content', `<div class="app-list">${rows}</div>`);
+    },
+
+    renderAdd() {
+      UI.setHTML('dash-content', `
+        <div class="add-panel">
+          <h3>➕ إضافة فرصة تدريب جديدة</h3>
+          <div class="alert alert-err" id="add-err"></div>
+          <div class="alert alert-ok"  id="add-ok"></div>
+          <div class="field">
+            <label>المجال</label>
+            <input id="add-field" placeholder="تطوير ويب، تسويق رقمي، تصميم جرافيك..."/>
+          </div>
+          <div class="field">
+            <label>وصف التدريب (اختياري)</label>
+            <textarea id="add-desc" placeholder="تفاصيل التدريب، المدة، المتطلبات..."></textarea>
+          </div>
+          <button class="btn btn-violet" id="add-btn" onclick="TrainerDash.addInternship()">إضافة التدريب</button>
+        </div>`);
+    },
+
+    async addInternship() {
+      const field = ($('add-field')?.value || '').trim();
+      const desc  = ($('add-desc')?.value  || '').trim();
+      UI.hideAlert('add-err'); UI.hideAlert('add-ok');
+      if (!field) { UI.showAlert('add-err', 'يرجى كتابة المجال'); return; }
+
+      const btn = $('add-btn');
+      btn.innerHTML = '<span class="spinner"></span>'; btn.disabled = true;
+
+      const { error } = await db.from('internships').insert({
+        trainer_id: TrainerDash.profile.id, field, description: desc || null
+      });
+
+      btn.disabled = false; btn.textContent = 'إضافة التدريب';
+
+      if (error) { UI.showAlert('add-err', 'حصل خطأ، حاول تاني'); }
+      else {
+        await TrainerDash.loadInternships();
+        UI.toast('تمت الإضافة بنجاح');
+        // switch to mine tab
+        const tabs = document.querySelectorAll('#dash-tabs .tab');
+        tabs.forEach(t => t.classList.remove('active'));
+        tabs[0].classList.add('active');
+        TrainerDash.renderMine();
+      }
+    },
+
+    confirmDelete(id, field) {
+      $('confirm-msg').textContent = `هتحذف تدريب "${field}"؟ الإجراء ده مش هيتراجع.`;
+      $('confirm-ok-btn').onclick = () => TrainerDash.deleteInternship(id);
+      UI.openOverlay('overlay-confirm');
+    },
+
+    async deleteInternship(id) {
+      UI.closeOverlay('overlay-confirm');
+      await db.from('internships').delete().eq('id', id);
+      await TrainerDash.loadInternships();
+      UI.toast('تم الحذف', '🗑️');
+      TrainerDash.renderMine();
+    },
+  };
+
+  window.TrainerDash = TrainerDash;
+
+  /* ── TRAINEE DASHBOARD ───────────────────────────────────────────────── */
+  const TraineeDash = {
+    profile: null,
+    internships: [],
+    applied: new Set(),
+
+    async init(profile) {
+      TraineeDash.profile = profile;
+      UI.setHTML('dash-tabs', `
+        <button class="tab active" onclick="TraineeDash.switchTab('all',this)">🔍 كل الفرص</button>
+        <button class="tab"        onclick="TraineeDash.switchTab('mine',this)">✅ تقديماتي</button>
+      `);
+      UI.setHTML('dash-content', `<div class="empty"><div class="empty-icon" style="font-size:1.5rem">⏳</div><h4>جاري التحميل...</h4></div>`);
+      await TraineeDash.loadAll();
+      TraineeDash.renderList('all');
+    },
+
+    switchTab(name, el) {
+      document.querySelectorAll('#dash-tabs .tab').forEach(t => t.classList.remove('active'));
+      el.classList.add('active');
+      TraineeDash.renderList(name);
+    },
+
+    async loadAll() {
+      const { data: interns } = await db.from('internships')
+        .select('*, profiles!trainer_id(id,name,company_name,phone,email)')
+        .order('created_at', { ascending: false });
+
+      const { data: apps } = await db.from('applications')
+        .select('internship_id').eq('trainee_id', TraineeDash.profile.id);
+
+      TraineeDash.internships = interns || [];
+      TraineeDash.applied = new Set((apps || []).map(a => a.internship_id));
+    },
+
+    renderList(tab) {
+      const list = tab === 'all'
+        ? TraineeDash.internships
+        : TraineeDash.internships.filter(i => TraineeDash.applied.has(i.id));
+
+      if (!list.length) {
+        const msg = tab === 'all'
+          ? ['📭', 'لا توجد فرص تدريب حالياً', 'لم يضف المدربون أي فرص بعد، تحقق لاحقاً']
+          : ['📋', 'لم تتقدم على أي فرصة بعد', 'استعرض الفرص المتاحة وابدأ التقديم'];
+        UI.setHTML('dash-content', `<div class="empty"><div class="empty-icon">${msg[0]}</div><h4>${msg[1]}</h4><p>${msg[2]}</p></div>`);
+        return;
+      }
+
+      const cards = list.map(i => {
+        const company  = i.profiles?.company_name || i.profiles?.name || '—';
+        const isApplied = TraineeDash.applied.has(i.id);
+        const action = isApplied
+          ? `<button class="btn btn-ghost btn-sm chip-green" style="background:var(--green-dim);color:var(--green);border-color:rgba(52,211,153,.3)" onclick="TraineeDash.showTrainer(${JSON.stringify(i).replace(/"/g,'&quot;')})">✅ اعرض بيانات المدرب</button>`
+          : `<button class="btn btn-sky btn-sm" id="apply-${i.id}" onclick="TraineeDash.apply(this,'${i.id}')">📨 قدّم الآن</button>`;
+        return `
+          <div class="intern-card">
+            <span class="chip chip-sky">${i.field}</span>
+            <div class="card-title">${company}</div>
+            ${i.description ? `<div class="card-desc">${i.description}</div>` : ''}
+            <div class="card-footer">
+              <span>${fmt(i.created_at)}</span>
+              ${action}
+            </div>
+          </div>`;
+      }).join('');
+
+      UI.setHTML('dash-content', `<div class="grid">${cards}</div>`);
+    },
+
+    async apply(btn, internshipId) {
+      btn.innerHTML = '<span class="spinner dark"></span>'; btn.disabled = true;
+
+      const internship = TraineeDash.internships.find(i => i.id === internshipId);
+      const { error } = await db.from('applications').insert({
+        trainee_id: TraineeDash.profile.id, internship_id: internshipId
+      });
+
+      if (!error) {
+        TraineeDash.applied.add(internshipId);
+        UI.toast('تم التقديم بنجاح!');
+        if (internship) TraineeDash.showTrainer(internship);
+        // re-render current tab
+        const activeTab = document.querySelector('#dash-tabs .tab.active');
+        const tab = activeTab?.dataset?.tab || 'all';
+        TraineeDash.renderList(tab);
+      } else {
+        btn.innerHTML = '📨 قدّم الآن'; btn.disabled = false;
+        UI.toast('حصل خطأ، حاول تاني', '❌');
+      }
+    },
+
+    showTrainer(internship) {
+      const info = internship.profiles;
+      $('trainer-modal-sub').innerHTML = `تقدمت على تدريب في مجال <strong>${internship.field}</strong> — إليك بيانات المدرب للتواصل:`;
+      UI.setHTML('trainer-modal-rows', `
+        <div class="info-row">
+          <div class="info-ico">🏢</div>
+          <div><div class="info-lbl">الشركة / المدرب</div><div class="info-val">${info?.company_name || info?.name || '—'}</div></div>
+        </div>
+        <div class="info-row">
+          <div class="info-ico">📧</div>
+          <div><div class="info-lbl">الإيميل</div><div class="info-val" style="direction:ltr">${info?.email || '—'}</div></div>
+        </div>
+        <div class="info-row">
+          <div class="info-ico">📞</div>
+          <div><div class="info-lbl">الهاتف</div><div class="info-val" style="direction:ltr">${info?.phone || '—'}</div></div>
+        </div>
+      `);
+      UI.openOverlay('overlay-trainer');
+    },
+  };
+
+  window.TraineeDash = TraineeDash;
+
+  // close overlays on backdrop click
+  document.querySelectorAll('.overlay').forEach(o => {
+    o.addEventListener('click', e => { if (e.target === o) o.classList.remove('open'); });
+  });
+
+  // kick off
+  App.init();
+}
 </script>
 </body>
 </html>
+HTMLEOF
+echo "done, lines: $(wc -l < /tmp/app.html)"
+Output
+
+done, lines: 1032
