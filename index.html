@@ -594,10 +594,10 @@ function TrainerDashboard({ profile }) {
   const loadApplicants = useCallback(async () => {
     setFetchingApps(true);
 
-    // أولاً: جيب IDs التدريبات بتاعت المدرب ده
+    // جيب IDs التدريبات بتاعت المدرب
     const { data: myInternships } = await supabase
       .from('internships')
-      .select('id')
+      .select('id, field')
       .eq('trainer_id', profile.id);
 
     const myIds = (myInternships || []).map(i => i.id);
@@ -608,24 +608,42 @@ function TrainerDashboard({ profile }) {
       return;
     }
 
-    // ثانياً: جيب التقديمات على التدريبات دي بس
-    const { data } = await supabase
+    // جيب التقديمات
+    const { data: apps, error: appsErr } = await supabase
       .from('applications')
-      .select(`
-        id,
-        created_at,
-        internship_id,
-        cv_url,
-        linkedin_url,
-        internships!internship_id ( field ),
-        profiles!trainee_id ( name, email, phone )
-      `)
+      .select('id, created_at, internship_id, trainee_id, cv_url, linkedin_url')
       .in('internship_id', myIds)
       .order('created_at', { ascending: false });
 
-    setApplicants(data || []);
+    if (appsErr || !apps || apps.length === 0) {
+      setApplicants([]);
+      setFetchingApps(false);
+      return;
+    }
+
+    // جيب بيانات المتدربين
+    const traineeIds = [...new Set(apps.map(a => a.trainee_id))];
+    const { data: profiles_data } = await supabase
+      .from('profiles')
+      .select('id, name, email, phone')
+      .in('id', traineeIds);
+
+    const profilesMap = {};
+    (profiles_data || []).forEach(p => { profilesMap[p.id] = p; });
+
+    const internshipsMap = {};
+    (myInternships || []).forEach(i => { internshipsMap[i.id] = i; });
+
+    // دمج البيانات
+    const merged = apps.map(a => ({
+      ...a,
+      trainee: profilesMap[a.trainee_id] || null,
+      internship: internshipsMap[a.internship_id] || null,
+    }));
+
+    setApplicants(merged);
     setFetchingApps(false);
-  }, []);
+  }, [profile.id]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -777,9 +795,9 @@ function TrainerDashboard({ profile }) {
                         fontSize:'1.3rem',flexShrink:0
                       }}>👤</div>
                       <div>
-                        <div style={{fontWeight:700,fontSize:'.95rem'}}>{app.profiles?.name || '—'}</div>
-                        <div style={{fontSize:'.82rem',color:'var(--ink-soft)',direction:'ltr'}}>{app.profiles?.email}</div>
-                        <div style={{fontSize:'.82rem',color:'var(--ink-soft)',direction:'ltr'}}>{app.profiles?.phone}</div>
+                        <div style={{fontWeight:700,fontSize:'.95rem'}}>{app.trainee?.name || '—'}</div>
+                        <div style={{fontSize:'.82rem',color:'var(--ink-soft)',direction:'ltr'}}>{app.trainee?.email || '—'}</div>
+                        <div style={{fontSize:'.82rem',color:'var(--ink-soft)',direction:'ltr'}}>{app.trainee?.phone || '—'}</div>
                         <div style={{display:'flex',gap:8,marginTop:6,flexWrap:'wrap'}}>
                           {app.cv_url && (
                             <a href={app.cv_url} target="_blank" rel="noopener noreferrer"
@@ -802,7 +820,7 @@ function TrainerDashboard({ profile }) {
                     </div>
                     <div style={{display:'flex',flexDirection:'column',alignItems:'flex-end',gap:4}}>
                       <span className="intern-field" style={{background:'var(--trainee-light)',color:'var(--trainee)'}}>
-                        {app.internships?.field || '—'}
+                        {app.internship?.field || '—'}
                       </span>
                       <span style={{fontSize:'.78rem',color:'var(--ink-faint)'}}>{fmt(app.created_at)}</span>
                     </div>
