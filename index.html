@@ -3,16 +3,11 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>2منصة التدريب</title>
+<title>منصة التدريب</title>
 
-<!-- 1) React أولاً -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
-
-<!-- 2) Supabase UMD الكاملة (بديل عن jsdelivr اللي بيسبب مشاكل) -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
- 
-<!-- 3) Babel أخيراً -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
 
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
@@ -225,23 +220,15 @@
 
   .applied-badge { display:inline-flex;align-items:center;gap:5px;background:#f0fdf4;color:var(--success);border:1px solid #bbf7d0;border-radius:8px;padding:6px 12px;font-size:.82rem;font-weight:700;cursor:pointer; }
 
-  /* ── CONFIG NOTICE ── */
-  .config-notice {
-    position:fixed;inset:0;background:rgba(15,23,42,.85);display:flex;
-    align-items:center;justify-content:center;z-index:9999;padding:20px;
-    backdrop-filter:blur(4px);
+  /* ── LOADING SCREEN ── */
+  .loading-screen {
+    min-height: 100vh; display:flex; align-items:center; justify-content:center;
+    flex-direction:column; gap:16px;
   }
-  .config-box {
-    background:var(--card);border-radius:var(--radius);padding:36px;
-    max-width:460px;width:100%;box-shadow:var(--shadow-lg);text-align:center;
-  }
-  .config-box h2 { font-size:1.4rem;font-weight:800;margin-bottom:12px;color:var(--danger); }
-  .config-box p { color:var(--ink-soft);font-size:.9rem;line-height:1.8;margin-bottom:16px; }
-  .config-box code {
-    display:block;background:#f1f5f9;border-radius:8px;padding:12px 16px;
-    font-family:monospace;font-size:.82rem;text-align:right;direction:ltr;
-    color:var(--ink);border:1px solid var(--border);margin-bottom:8px;
-    word-break:break-all;
+  .loading-spinner {
+    width:40px;height:40px;border:3px solid var(--border);
+    border-top-color:var(--trainer);border-radius:50%;
+    animation:spin .8s linear infinite;
   }
 
   @media(max-width:600px) {
@@ -255,66 +242,50 @@
 <body>
 <div id="root"></div>
 
+<script>
+  // ─── تهيئة Supabase قبل React ───────────────────────────────────────────────
+  const SUPABASE_URL      = 'https://mcqugbvpiyrmqsndtiwu.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1jcXVnYnZwaXlybXFzbmR0aXd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODExMDA5NDAsImV4cCI6MjA5NjY3Njk0MH0.aspyIGCB_nzvAV2Si_fRrswKP31w10hLDDjlA6K2dxE';
+
+  // الـ UMD bundle بيعمل expose على window.supabase
+  window._supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+</script>
+
 <script type="text/babel">
 const { useState, useEffect, useCallback } = React;
 
-// ─── SUPABASE CONFIG ──────────────────────────────────────────────────────────
-// ⚠️ ضع هنا بيانات مشروعك من:
-//    Supabase Dashboard → Settings → API
-// ─────────────────────────────────────────────────────────────────────────────
-const SUPABASE_URL     = 'https://mcqugbvpiyrmqsndtiwu.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1jcXVnYnZwaXlybXFzbmR0aXd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODExMDA5NDAsImV4cCI6MjA5NjY3Njk0MH0.aspyIGCB_nzvAV2Si_fRrswKP31w10hLDDjlA6K2dxE';
+// استخدام الـ client اللي اتعمل قبل كده
+const supabase = window._supabaseClient;
 
-// التحقق من الـ Config قبل أي حاجة
-const CONFIG_MISSING = !SUPABASE_URL || !SUPABASE_ANON_KEY;
-
-// إنشاء الـ Client بأمان
-let supabase = null;
-if (!CONFIG_MISSING) {
-  try {
-    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-  } catch(e) {
-    console.error('Supabase init error:', e);
-  }
-}
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
 const fmt = (d) => new Date(d).toLocaleDateString('ar-EG', {
   year: 'numeric', month: 'long', day: 'numeric'
 });
 
-// ─── CONFIG NOTICE (لما تكون البيانات فاضية) ─────────────────────────────────
-function ConfigNotice() {
-  return (
-    <div className="config-notice">
-      <div className="config-box">
-        <h2>⚠️ إعداد مطلوب</h2>
-        <p>يرجى إدخال بيانات Supabase الخاصة بك في أعلى الكود</p>
-        <code>SUPABASE_URL = 'https://xxxx.supabase.co'</code>
-        <code>SUPABASE_ANON_KEY = 'eyJ...'</code>
-        <p>تلاقيهم في: <strong>Supabase Dashboard → Settings → API</strong></p>
-      </div>
-    </div>
-  );
-}
-
 // ─── APP ──────────────────────────────────────────────────────────────────────
 function App() {
-  const [page, setPage]         = useState('landing');
+  const [page, setPage]         = useState('loading');
   const [role, setRole]         = useState(null);
   const [authMode, setAuthMode] = useState('login');
   const [user, setUser]         = useState(null);
   const [profile, setProfile]   = useState(null);
 
   useEffect(() => {
-    if (CONFIG_MISSING || !supabase) return;
-
+    // تحقق من session موجودة عند فتح الصفحة
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) loadUser(session.user);
+      if (session?.user) {
+        loadUser(session.user);
+      } else {
+        setPage('landing');
+      }
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session) loadUser(session.user);
-      else { setUser(null); setProfile(null); setPage('landing'); }
+      if (!session) {
+        setUser(null);
+        setProfile(null);
+        setPage('landing');
+      }
     });
 
     return () => subscription.unsubscribe();
@@ -322,23 +293,38 @@ function App() {
 
   async function loadUser(u) {
     setUser(u);
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('profiles')
       .select('*')
       .eq('id', u.id)
       .single();
-    if (data) { setProfile(data); setPage('dashboard'); }
+
+    if (data) {
+      setProfile(data);
+      setPage('dashboard');
+    } else {
+      // لو البروفايل مش موجود لأي سبب
+      setPage('landing');
+    }
   }
 
   async function handleLogout() {
     await supabase.auth.signOut();
-    setRole(null); setPage('landing');
+    setRole(null);
+    setPage('landing');
+  }
+
+  if (page === 'loading') {
+    return (
+      <div className="loading-screen">
+        <div className="loading-spinner"></div>
+        <p style={{color:'var(--ink-soft)', fontFamily:'Cairo, sans-serif'}}>جاري التحميل...</p>
+      </div>
+    );
   }
 
   return (
     <div>
-      {CONFIG_MISSING && <ConfigNotice />}
-
       <nav className="nav">
         <div className="nav-logo"><span>🎓</span> منصة التدريب</div>
         <div className="nav-actions">
@@ -429,17 +415,17 @@ function Landing({ onSelect, onLogin }) {
 
 // ─── AUTH PAGE ────────────────────────────────────────────────────────────────
 function AuthPage({ role, mode, setMode, onBack, onSuccess }) {
-  const [form, setForm]     = useState({ name:'', phone:'', email:'', password:'', company_name:'' });
+  const [form, setForm]       = useState({ name:'', phone:'', email:'', password:'', company_name:'' });
   const [loading, setLoading] = useState(false);
-  const [error, setError]   = useState('');
+  const [error, setError]     = useState('');
   const isTrainer = role === 'trainer';
 
   const set = (k, v) => setForm(f => ({...f, [k]: v}));
 
   async function handleSubmit(e) {
     e.preventDefault();
-    if (!supabase) { setError('يرجى إعداد بيانات Supabase أولاً'); return; }
-    setError(''); setLoading(true);
+    setError('');
+    setLoading(true);
 
     if (mode === 'register') {
       const { data, error: err } = await supabase.auth.signUp({
@@ -487,7 +473,7 @@ function AuthPage({ role, mode, setMode, onBack, onSuccess }) {
             <>
               <div className="form-group">
                 <label className="form-label">
-                  {isTrainer ? 'اسم الشركة / المدرب' : 'الاسم بالكامل'}
+                  {isTrainer ? 'اسم المدرب / المسؤول' : 'الاسم بالكامل'}
                 </label>
                 <input
                   className={inputClass}
@@ -499,7 +485,7 @@ function AuthPage({ role, mode, setMode, onBack, onSuccess }) {
               </div>
               {isTrainer && (
                 <div className="form-group">
-                  <label className="form-label">اسم الشركة</label>
+                  <label className="form-label">اسم الشركة (اختياري)</label>
                   <input
                     className={inputClass}
                     placeholder="شركة ..."
@@ -576,11 +562,11 @@ function AuthPage({ role, mode, setMode, onBack, onSuccess }) {
 // ─── TRAINER DASHBOARD ────────────────────────────────────────────────────────
 function TrainerDashboard({ profile }) {
   const [internships, setInternships] = useState([]);
-  const [tab, setTab]    = useState('mine');
-  const [form, setForm]  = useState({ field:'', description:'' });
-  const [loading, setLoading] = useState(false);
+  const [tab, setTab]     = useState('mine');
+  const [form, setForm]   = useState({ field:'', description:'' });
+  const [loading, setLoading]   = useState(false);
   const [fetching, setFetching] = useState(true);
-  const [msg, setMsg]    = useState('');
+  const [msg, setMsg]     = useState('');
 
   const load = useCallback(async () => {
     setFetching(true);
